@@ -34,11 +34,17 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (never commit to git)
 .env
-.env*.local
+.env*
 .env.local
-Frontend/.env
+.env*.local
+*.env
+*.env.local
+**/.env
+**/.env*
+**/.env.local
+**/.env*.local
 
 
 # typescript
