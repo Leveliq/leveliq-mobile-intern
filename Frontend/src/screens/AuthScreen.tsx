@@ -1,4 +1,3 @@
-// src/screens/AuthScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -10,8 +9,6 @@ import {
   Platform,
   ScrollView,
   StatusBar,
-  StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { useAuth } from '../context/AuthContext';
@@ -41,13 +38,7 @@ const svgGoogle = `
 `;
 
 export default function AuthScreen() {
-  const { width } = useWindowDimensions();
-  const {
-    signIn,
-    signUp,
-    signInWithGoogle,
-    loading: authLoading,
-  } = useAuth();
+  const { signIn, signUp, signInWithGoogle, loading: authLoading } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
@@ -67,9 +58,7 @@ export default function AuthScreen() {
 
     try {
       const { error } = await signInWithGoogle();
-      if (error) {
-        setErrorMessage(error.message || 'Google sign-in was cancelled or failed.');
-      }
+      if (error) setErrorMessage(error.message || 'Google sign-in was cancelled or failed.');
     } catch (err: any) {
       setErrorMessage(err.message || 'Google sign-in error.');
     } finally {
@@ -81,28 +70,15 @@ export default function AuthScreen() {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!email.trim() || !password.trim()) {
-      setErrorMessage('Please provide both email and password.');
-      return;
-    }
-
-    if (mode === 'signup' && !name.trim()) {
-      setErrorMessage('Please enter your full name.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
-      return;
-    }
+    if (!email.trim() || !password.trim()) return setErrorMessage('Please provide both email and password.');
+    if (mode === 'signup' && !name.trim()) return setErrorMessage('Please enter your full name.');
+    if (password.length < 6) return setErrorMessage('Password must be at least 6 characters long.');
 
     setIsSubmitting(true);
 
     if (mode === 'signin') {
       const { error } = await signIn(email, password);
-      if (error) {
-        setErrorMessage(error.message || 'Invalid email or password.');
-      }
+      if (error) setErrorMessage(error.message || 'Invalid email or password.');
     } else {
       const { error, user } = await signUp(name, email, password);
       if (error) {
@@ -115,115 +91,107 @@ export default function AuthScreen() {
         }
       }
     }
-
     setIsSubmitting(false);
   };
 
   return (
-    <View style={styles.screen}>
+    <View className="flex-1 bg-[#050816]">
       <StatusBar barStyle="light-content" backgroundColor="#050816" />
 
       {/* Ambient background glows */}
-      <View style={styles.topGlow} pointerEvents="none" />
-      <View style={styles.bottomGlow} pointerEvents="none" />
+      <View className="absolute top-[-110px] self-center w-[320px] h-[320px] rounded-full bg-[#123D91] opacity-[0.28]" pointerEvents="none" />
+      <View className="absolute bottom-[-130px] self-center w-[320px] h-[320px] rounded-full bg-[#0C4A6E] opacity-[0.22]" pointerEvents="none" />
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.mainWrapper, { maxWidth: Math.min(width - 32, 420) }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          
+          <View className="w-full max-w-[420px] items-center">
+            
             {/* Header Brand */}
-            <View style={styles.brandContainer}>
-              <View style={styles.logoBadge}>
+            <View className="items-center w-full mb-4">
+              <View 
+                className="w-14 h-14 rounded-2xl items-center justify-center bg-[#0f234e]/75 border border-blue-400/30 mb-2.5"
+                style={{ shadowColor: '#2563EB', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 18, elevation: 8 }}
+              >
                 <SvgXml xml={svgLogoMini} width={34} height={34} />
               </View>
-              <Text style={styles.brandTitle}>
-                Level<Text style={styles.brandAccent}>IQ</Text>
+              <Text className="text-[#F8FAFC] text-2xl font-extrabold tracking-[1.5px] text-center">
+                Level<Text className="text-[#38BDF8]">IQ</Text>
               </Text>
             </View>
 
             {/* Auth Card Container */}
-            <View style={styles.card}>
+            <View 
+              className="w-full bg-[#0f172a]/85 rounded-[20px] border border-sky-400/15 p-[18px]"
+              style={{ shadowColor: '#000000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.5, shadowRadius: 24, elevation: 10 }}
+            >
+              
               {/* GOOGLE SIGN IN BUTTON */}
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={styles.googleButton}
                 onPress={handleGoogleSignIn}
                 disabled={isGoogleLoading || isSubmitting || authLoading}
+                className="bg-[#0F172A] rounded-xl py-3 items-center justify-center border border-sky-400/30"
+                style={{ shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 3 }}
               >
                 {isGoogleLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <View style={styles.googleButtonContent}>
+                  <View className="flex-row items-center justify-center">
                     <SvgXml xml={svgGoogle} width={18} height={18} />
-                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                    <Text className="text-[#F8FAFC] text-sm font-bold ml-2.5 tracking-[0.2px]">Continue with Google</Text>
                   </View>
                 )}
               </TouchableOpacity>
 
               {/* Divider */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR SIGN IN WITH EMAIL</Text>
-                <View style={styles.dividerLine} />
+              <View className="flex-row items-center my-3.5">
+                <View className="flex-1 h-[1px] bg-slate-400/15" />
+                <Text className="text-slate-500 text-[9px] font-bold tracking-[1.1px] mx-2.5">OR SIGN IN WITH EMAIL</Text>
+                <View className="flex-1 h-[1px] bg-slate-400/15" />
               </View>
 
               {/* Mode Switcher Tabs */}
-              <View style={styles.tabContainer}>
+              <View className="flex-row bg-[#0b1326]/85 rounded-xl p-[3px] border border-slate-400/10 mb-3.5">
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  style={[styles.tab, mode === 'signin' && styles.tabActive]}
-                  onPress={() => {
-                    setMode('signin');
-                    setErrorMessage(null);
-                    setSuccessMessage(null);
-                  }}
+                  onPress={() => { setMode('signin'); setErrorMessage(null); setSuccessMessage(null); }}
+                  className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signin' ? 'bg-blue-600' : ''}`}
+                  style={mode === 'signin' ? { shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
-                  <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
-                    Sign In
-                  </Text>
+                  <Text className={`text-xs tracking-[0.3px] ${mode === 'signin' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Sign In</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  style={[styles.tab, mode === 'signup' && styles.tabActive]}
-                  onPress={() => {
-                    setMode('signup');
-                    setErrorMessage(null);
-                    setSuccessMessage(null);
-                  }}
+                  onPress={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
+                  className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signup' ? 'bg-blue-600' : ''}`}
+                  style={mode === 'signup' ? { shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
-                  <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
-                    Create Account
-                  </Text>
+                  <Text className={`text-xs tracking-[0.3px] ${mode === 'signup' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Create Account</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Error Alert */}
               {errorMessage && (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorText}>{errorMessage}</Text>
+                <View className="bg-red-500/15 border border-red-500/35 p-[9px] rounded-[10px] mb-3">
+                  <Text className="text-red-400 text-xs text-center font-medium leading-4">{errorMessage}</Text>
                 </View>
               )}
 
               {/* Success Alert */}
               {successMessage && (
-                <View style={styles.successBanner}>
-                  <Text style={styles.successText}>{successMessage}</Text>
+                <View className="bg-green-500/15 border border-green-500/35 p-[9px] rounded-[10px] mb-3">
+                  <Text className="text-green-400 text-xs text-center font-medium leading-4">{successMessage}</Text>
                 </View>
               )}
 
               {/* Name Field (Sign Up only) */}
               {mode === 'signup' && (
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>FULL NAME</Text>
+                <View className="w-full mb-[11px]">
+                  <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">FULL NAME</Text>
                   <TextInput
-                    style={styles.input}
+                    className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                     placeholder="Enter your full name"
                     placeholderTextColor="#475569"
                     value={name}
@@ -235,10 +203,10 @@ export default function AuthScreen() {
               )}
 
               {/* Email Field */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
+              <View className="w-full mb-[11px]">
+                <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">EMAIL ADDRESS</Text>
                 <TextInput
-                  style={styles.input}
+                  className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                   placeholder="your.email@example.com"
                   placeholderTextColor="#475569"
                   value={email}
@@ -250,20 +218,15 @@ export default function AuthScreen() {
               </View>
 
               {/* Password Field */}
-              <View style={styles.inputGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>PASSWORD</Text>
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={styles.showPasswordText}>
-                      {showPassword ? 'Hide' : 'Show'}
-                    </Text>
+              <View className="w-full mb-[11px]">
+                <View className="flex-row justify-between items-center mb-[5px]">
+                  <Text className="text-slate-400 text-[10px] font-bold tracking-[1px]">PASSWORD</Text>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text className="text-[#38BDF8] text-[11px] font-semibold">{showPassword ? 'Hide' : 'Show'}</Text>
                   </TouchableOpacity>
                 </View>
                 <TextInput
-                  style={styles.input}
+                  className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                   placeholder="••••••••••••"
                   placeholderTextColor="#475569"
                   value={password}
@@ -276,21 +239,20 @@ export default function AuthScreen() {
               {/* Primary Action Button */}
               <TouchableOpacity
                 activeOpacity={0.85}
-                style={[
-                  styles.primaryButton,
-                  (isSubmitting || authLoading) && styles.buttonDisabled,
-                ]}
                 onPress={handleSubmit}
                 disabled={isSubmitting || authLoading || isGoogleLoading}
+                className={`bg-blue-600 rounded-xl py-3 items-center justify-center mt-1 ${(isSubmitting || authLoading) ? 'opacity-65' : ''}`}
+                style={{ shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4 }}
               >
                 {isSubmitting || authLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>
-                    {mode === 'signin' ? 'Sign In to LevelIQ' : 'Create Supabase Account'}
+                  <Text className="text-white text-[13px] font-bold tracking-[0.4px]">
+                    {mode === 'signin' ? 'Sign In to LevelIQ' : 'Create Account'}
                   </Text>
                 )}
               </TouchableOpacity>
+
             </View>
           </View>
         </ScrollView>
@@ -298,272 +260,3 @@ export default function AuthScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#050816',
-  },
-  topGlow: {
-    position: 'absolute',
-    top: -110,
-    alignSelf: 'center',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: '#123D91',
-    opacity: 0.28,
-  },
-  bottomGlow: {
-    position: 'absolute',
-    bottom: -130,
-    alignSelf: 'center',
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-    backgroundColor: '#0C4A6E',
-    opacity: 0.22,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-  },
-  mainWrapper: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  brandContainer: {
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 16,
-  },
-  logoBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(15, 35, 78, 0.75)',
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.28)',
-    marginBottom: 10,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  brandTitle: {
-    color: '#F8FAFC',
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    textAlign: 'center',
-  },
-  brandAccent: {
-    color: '#38BDF8',
-  },
-  brandSubtitle: {
-    marginTop: 4,
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.4,
-    textAlign: 'center',
-  },
-  card: {
-    width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.16)',
-    padding: 18,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  googleButton: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.28)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  googleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  googleButtonText: {
-    color: '#F8FAFC',
-    fontSize: 14,
-    fontWeight: '700',
-    marginLeft: 10,
-    letterSpacing: 0.2,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 14,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-  },
-  dividerText: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    marginHorizontal: 10,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(11, 19, 38, 0.85)',
-    borderRadius: 12,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.08)',
-    marginBottom: 14,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabActive: {
-    backgroundColor: '#2563EB',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-  },
-  tabText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  tabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  errorBanner: {
-    backgroundColor: 'rgba(239, 68, 68, 0.14)',
-    borderColor: 'rgba(239, 68, 68, 0.35)',
-    borderWidth: 1,
-    padding: 9,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  errorText: {
-    color: '#F87171',
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  successBanner: {
-    backgroundColor: 'rgba(34, 197, 94, 0.14)',
-    borderColor: 'rgba(34, 197, 94, 0.35)',
-    borderWidth: 1,
-    padding: 9,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  successText: {
-    color: '#4ADE80',
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  inputGroup: {
-    width: '100%',
-    marginBottom: 11,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  inputLabel: {
-    color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginBottom: 5,
-  },
-  showPasswordText: {
-    color: '#38BDF8',
-    fontSize: 11,
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  input: {
-    width: '100%',
-    backgroundColor: 'rgba(11, 19, 38, 0.95)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    color: '#F8FAFC',
-    fontSize: 13,
-  },
-  primaryButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-    shadowColor: '#38BDF8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    opacity: 0.65,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  securityDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#22C55E',
-    marginRight: 6,
-  },
-  footerText: {
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '500',
-  },
-});

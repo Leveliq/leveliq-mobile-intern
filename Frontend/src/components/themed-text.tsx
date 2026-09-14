@@ -1,73 +1,41 @@
-import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
-
-import { Fonts, ThemeColor } from '@/constants/theme';
+import { Text, type TextProps } from 'react-native';
+import { ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ThemedTextProps = TextProps & {
   type?: 'default' | 'title' | 'small' | 'smallBold' | 'subtitle' | 'link' | 'linkPrimary' | 'code';
   themeColor?: ThemeColor;
+  className?: string; // Add this so we can pass Tailwind classes easily
 };
 
-export function ThemedText({ style, type = 'default', themeColor, ...rest }: ThemedTextProps) {
+const textTypeClasses = {
+  default: 'text-base leading-6 font-medium',
+  title: 'text-5xl font-semibold leading-[52px]',
+  subtitle: 'text-[32px] leading-[44px] font-semibold',
+  small: 'text-sm leading-5 font-medium',
+  smallBold: 'text-sm leading-5 font-bold',
+  link: 'text-sm leading-[30px]',
+  linkPrimary: 'text-sm leading-[30px] text-[#3c87f7]',
+  code: 'font-mono text-xs font-medium', // NativeWind handles fonts safely
+};
+
+export function ThemedText({ 
+  style, 
+  className = '', 
+  type = 'default', 
+  themeColor, 
+  ...rest 
+}: ThemedTextProps) {
   const theme = useTheme();
 
   return (
     <Text
+      className={`${textTypeClasses[type]} ${className}`}
       style={[
-        { color: theme[themeColor ?? 'text'] },
-        type === 'default' && styles.default,
-        type === 'title' && styles.title,
-        type === 'small' && styles.small,
-        type === 'smallBold' && styles.smallBold,
-        type === 'subtitle' && styles.subtitle,
-        type === 'link' && styles.link,
-        type === 'linkPrimary' && styles.linkPrimary,
-        type === 'code' && styles.code,
-        style,
+        { color: theme[themeColor ?? 'text'] }, // Keep dynamic theme color
+        style, // Allow style overrides
       ]}
       {...rest}
     />
   );
 }
-
-const styles = StyleSheet.create({
-  small: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
-  smallBold: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 700,
-  },
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: 500,
-  },
-  title: {
-    fontSize: 48,
-    fontWeight: 600,
-    lineHeight: 52,
-  },
-  subtitle: {
-    fontSize: 32,
-    lineHeight: 44,
-    fontWeight: 600,
-  },
-  link: {
-    lineHeight: 30,
-    fontSize: 14,
-  },
-  linkPrimary: {
-    lineHeight: 30,
-    fontSize: 14,
-    color: '#3c87f7',
-  },
-  code: {
-    fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
-    fontSize: 12,
-  },
-});

@@ -1,26 +1,68 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * LevelIQ Design Tokens
+ * Used by useTheme(), ThemedText, ThemedView.
+ * Prefer NativeWind className for UI; use these for dynamic theme values.
  */
-
-import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const Brand = {
+  // Core brand
+  navy: '#050816',
+  navyCard: '#0f172a',
+  navyDeep: '#0b1326',
+  navyPanel: '#0f234e',
+
+  // Accents
+  blue: '#2563EB',
+  blueLight: '#60A5FA',
+  cyan: '#38BDF8',
+
+  // Glow blobs (splash / auth backgrounds)
+  glowBlue: '#123D91',
+  glowTeal: '#0C4A6E',
+
+  // Status
+  success: '#22C55E',
+  successText: '#4ADE80',
+  danger: '#EF4444',
+  dangerText: '#F87171',
+
+  // Text scale
+  white: '#F8FAFC',
+  slate: '#94A3B8',
+  slateMuted: '#64748B',
+  slateDim: '#475569',
+} as const;
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: '#0F172A',
+    textSecondary: '#64748B',
+    background: '#F8FAFC',
+    backgroundElement: '#F1F5F9',
+    backgroundSelected: '#E2E8F0',
+    border: '#E2E8F0',
+    primary: Brand.blue,
+    primaryText: '#FFFFFF',
+    accent: Brand.cyan,
+    danger: Brand.danger,
+    success: Brand.success,
+    card: '#FFFFFF',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: Brand.white,
+    textSecondary: Brand.slate,
+    background: Brand.navy,
+    backgroundElement: Brand.navyDeep,
+    backgroundSelected: '#1E293B',
+    border: 'rgba(56, 189, 248, 0.16)',
+    primary: Brand.blue,
+    primaryText: '#FFFFFF',
+    accent: Brand.cyan,
+    danger: Brand.dangerText,
+    success: Brand.successText,
+    card: 'rgba(15, 23, 42, 0.88)',
   },
 } as const;
 
@@ -28,13 +70,9 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
@@ -44,13 +82,14 @@ export const Fonts = Platform.select({
     mono: 'monospace',
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    sans: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    serif: 'Georgia, serif',
+    rounded: 'system-ui',
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   },
 });
 
+/** Optional spacing scale if you ever need it outside Tailwind */
 export const Spacing = {
   half: 2,
   one: 4,

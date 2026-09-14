@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
-  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SvgXml } from 'react-native-svg';
@@ -31,23 +30,25 @@ const svgLogoMini = `
 export default function HomeScreen() {
   const { user, loading: authLoading, userName, signOut } = useAuth();
 
-  // 1. Initializing auth check
+  // 1. Auth still loading
   if (authLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 bg-[#050816] items-center justify-center">
         <StatusBar barStyle="light-content" backgroundColor="#050816" />
         <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={styles.loadingText}>Initializing LevelIQ...</Text>
+        <Text className="mt-3.5 text-slate-400 text-[13px] font-medium">
+          Initializing LevelIQ...
+        </Text>
       </View>
     );
   }
 
-  // 2. FIRST WHEN SCREEN LOADS: DIRECT LOGIN SCREEN (No dashboard)
+  // 2. Not logged in → Auth screen
   if (!user) {
     return <AuthScreen />;
   }
 
-  // 3. ONLY AFTER LOGIN: Show Welcome Back with user name and sign out (zero fluff)
+  // 3. Logged in → Welcome
   const displayName =
     userName ||
     user?.user_metadata?.full_name ||
@@ -56,47 +57,83 @@ export default function HomeScreen() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView className="flex-1 bg-[#050816]">
       <StatusBar barStyle="light-content" backgroundColor="#050816" />
-      <View style={styles.container}>
-        {/* Ambient background glow effects */}
-        <View style={styles.topGlow} pointerEvents="none" />
-        <View style={styles.bottomGlow} pointerEvents="none" />
 
-        {/* Centered Welcome Card */}
-        <View style={styles.centerWrapper}>
-          {/* Brand Badge */}
-          <View style={styles.logoBadge}>
+      <View className="flex-1 bg-[#050816]">
+        {/* Ambient glows */}
+        <View
+          pointerEvents="none"
+          className="absolute top-[-100px] right-[-50px] w-[280px] h-[280px] rounded-full bg-[#123D91] opacity-[0.26]"
+        />
+        <View
+          pointerEvents="none"
+          className="absolute bottom-[-120px] left-[-60px] w-[300px] h-[300px] rounded-full bg-[#0C4A6E] opacity-[0.22]"
+        />
+
+        {/* Center content */}
+        <View className="flex-1 items-center justify-center px-5">
+          {/* Logo badge */}
+          <View
+            className="w-[62px] h-[62px] rounded-[18px] items-center justify-center bg-[#0f234e]/80 border border-blue-400/30 mb-[22px]"
+            style={{
+              shadowColor: '#2563EB',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.45,
+              shadowRadius: 18,
+              elevation: 8,
+            }}
+          >
             <SvgXml xml={svgLogoMini} width={38} height={38} />
           </View>
 
-          <View style={styles.welcomeCard}>
-            {/* User Avatar Initial */}
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarText}>{initial}</Text>
+          {/* Welcome card */}
+          <View
+            className="w-full max-w-[380px] bg-[#0f172a]/90 rounded-3xl py-8 px-6 items-center border border-sky-400/20"
+            style={{
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.5,
+              shadowRadius: 24,
+              elevation: 8,
+            }}
+          >
+            {/* Avatar */}
+            <View
+              className="w-[72px] h-[72px] rounded-full bg-blue-600/25 border-2 border-[#38BDF8] items-center justify-center mb-4"
+              style={{
+                shadowColor: '#38BDF8',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 12,
+              }}
+            >
+              <Text className="text-[#38BDF8] text-3xl font-extrabold">{initial}</Text>
             </View>
 
-            {/* Welcome Greeting */}
-            <Text style={styles.welcomeLabel}>WELCOME BACK</Text>
-            <Text style={styles.welcomeName} numberOfLines={2}>
+            <Text className="text-slate-400 text-[11px] font-bold tracking-[2px] mb-1.5">
+              WELCOME BACK
+            </Text>
+
+            <Text className="text-slate-50 text-2xl font-extrabold text-center mb-4" numberOfLines={2}>
               {displayName} 👋
             </Text>
 
-            {/* Email Pill Badge */}
-            <View style={styles.emailBadge}>
-              <View style={styles.activeDot} />
-              <Text style={styles.emailText} numberOfLines={1}>
+            {/* Email pill */}
+            <View className="flex-row items-center bg-[#0b1326]/85 rounded-full px-3 py-1.5 border border-slate-400/15 mb-6">
+              <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
+              <Text className="text-slate-400 text-xs font-medium" numberOfLines={1}>
                 {user.email}
               </Text>
             </View>
 
-            {/* Sign Out Button */}
+            {/* Sign out */}
             <TouchableOpacity
-              style={styles.signOutButton}
               onPress={signOut}
               activeOpacity={0.8}
+              className="w-full py-[13px] rounded-xl bg-red-500/10 border border-red-500/30 items-center justify-center"
             >
-              <Text style={styles.signOutButtonText}>Sign Out</Text>
+              <Text className="text-red-400 text-sm font-bold tracking-[0.3px]">Sign Out</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -104,157 +141,3 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#050816',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#050816',
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#050816',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 14,
-    color: '#94A3B8',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  topGlow: {
-    position: 'absolute',
-    top: -100,
-    right: -50,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#123D91',
-    opacity: 0.26,
-  },
-  bottomGlow: {
-    position: 'absolute',
-    bottom: -120,
-    left: -60,
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: '#0C4A6E',
-    opacity: 0.22,
-  },
-  centerWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  logoBadge: {
-    width: 62,
-    height: 62,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(15, 35, 78, 0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.3)',
-    marginBottom: 22,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  welcomeCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    borderRadius: 24,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  avatarCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(37, 99, 235, 0.25)',
-    borderWidth: 2,
-    borderColor: '#38BDF8',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#38BDF8',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-  },
-  avatarText: {
-    color: '#38BDF8',
-    fontSize: 30,
-    fontWeight: '800',
-  },
-  welcomeLabel: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: 6,
-  },
-  welcomeName: {
-    color: '#F8FAFC',
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  emailBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(11, 19, 38, 0.85)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 163, 184, 0.15)',
-    marginBottom: 24,
-  },
-  activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#22C55E',
-    marginRight: 8,
-  },
-  emailText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  signOutButton: {
-    width: '100%',
-    paddingVertical: 13,
-    borderRadius: 12,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signOutButtonText: {
-    color: '#F87171',
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-});
