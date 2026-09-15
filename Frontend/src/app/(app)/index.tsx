@@ -1,11 +1,10 @@
-// src/app/index.tsx
+// src/app/(app)/index.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image, StatusBar } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { TrendingUp, TrendingDown, Minus, ArrowRight, Upload, Search, Target, CreditCard, Activity, LogOut } from 'lucide-react-native';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { TrendingUp, TrendingDown, Minus, Upload, Search, Target, CreditCard, Activity } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const GRADE_COLOR: Record<string, string> = {
   'A+': '#22C55E', 'A': '#22C55E', 'B+': '#84CC16',
@@ -13,7 +12,7 @@ const GRADE_COLOR: Record<string, string> = {
 };
 
 export default function DashboardScreen() {
-  const { user, userName, signOut } = useAuth();
+  const { user, userName } = useAuth();
   const router = useRouter();
   
   const [plan, setPlan] = useState<string>('free');
@@ -25,26 +24,17 @@ export default function DashboardScreen() {
 
     const loadDashboardData = async () => {
       try {
-        const { data: planData } = await supabase
-          .from('users')
-          .select('plan')
-          .eq('id', user.id)
-          .single();
-        
+        const { data: planData } = await supabase.from('users').select('plan').eq('id', user.id).single();
         if (planData) setPlan(planData.plan);
 
-        const { data: reportData, error } = await supabase
+        const { data: reportData } = await supabase
           .from('reports')
           .select('id, health_score, grade, share_token, created_at, sector_breakdown, overlap_matrix')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(20);
 
-        if (error) {
-          console.error('[Dashboard] Error fetching reports:', error.message);
-        } else if (reportData) {
-          setReports(reportData);
-        }
+        if (reportData) setReports(reportData);
       } catch (error) {
         console.error('[Dashboard] Unexpected error:', error);
       } finally {
@@ -58,7 +48,6 @@ export default function DashboardScreen() {
   if (loadingData) {
     return (
       <View className="flex-1 bg-[#050816] items-center justify-center">
-        <StatusBar barStyle="light-content" backgroundColor="#050816" />
         <ActivityIndicator size="large" color="#38BDF8" />
         <Text className="mt-4 text-slate-400 font-medium">Loading Portfolio...</Text>
       </View>
@@ -82,10 +71,8 @@ export default function DashboardScreen() {
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <SafeAreaView className="flex-1 bg-[#050816]">
-      <StatusBar barStyle="light-content" backgroundColor="#050816" />
-      
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 10, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-[#050816]">
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         
         {/* Header Section */}
         <View className="flex-row items-center justify-between mb-8">
@@ -108,11 +95,6 @@ export default function DashboardScreen() {
               <Text className="text-[#38BDF8] text-[10px] font-bold tracking-wide">PRO</Text>
             </View>
           )}
-          {plan === 'founding' && (
-            <View className="bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 rounded-full">
-              <Text className="text-amber-400 text-[10px] font-bold tracking-wide">FOUNDING</Text>
-            </View>
-          )}
         </View>
 
         {/* Empty State */}
@@ -133,7 +115,6 @@ export default function DashboardScreen() {
         {/* Premium Latest Score Card */}
         {latest && (
           <View className="bg-[#0f172a] rounded-[24px] p-6 border border-sky-400/20 mb-6 shadow-lg shadow-black/50">
-            {/* Card Header */}
             <View className="flex-row justify-between items-center mb-5">
               <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px]">LATEST HEALTH SCORE™</Text>
               <Text className="text-slate-500 text-[10px] font-medium">
@@ -141,7 +122,6 @@ export default function DashboardScreen() {
               </Text>
             </View>
             
-            {/* Score & Trend */}
             <View className="flex-row items-center justify-between mb-8">
               <View>
                 <Text className="text-[64px] font-black tracking-tighter" style={{ color: gc(latest.grade), lineHeight: 70 }}>
@@ -168,7 +148,6 @@ export default function DashboardScreen() {
               </View>
             </View>
 
-            {/* Action Buttons Integrated into Card */}
             <View className="flex-row gap-3">
               <TouchableOpacity className="flex-1 bg-blue-600/15 border border-blue-500/30 py-3.5 rounded-xl items-center justify-center">
                 <Text className="text-[#38BDF8] text-[13px] font-bold">View Report</Text>
@@ -181,80 +160,31 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Score Trend Chart (Mini) */}
-        {reports.length >= 2 && (
-          <View className="bg-[#0f172a]/80 rounded-2xl p-5 border border-sky-400/15 mb-6">
-            <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px] mb-4">SCORE TREND</Text>
-            <View className="flex-row items-end h-[80px] justify-between">
-              {reports.slice(0, 8).reverse().map((r, i, arr) => {
-                const heightPercentage = Math.max(((r.health_score || 0) / 100) * 100, 10);
-                const color = gc(r.grade);
-                const isLatest = i === arr.length - 1;
-                
-                return (
-                  <View key={r.id || i} className="items-center flex-1 mx-0.5">
-                    <Text className="text-[9px] text-slate-400 font-bold mb-1.5">{r.health_score}</Text>
-                    <View 
-                      className="w-full rounded-t-md" 
-                      style={{ height: `${heightPercentage}%`, backgroundColor: color, opacity: isLatest ? 1 : 0.4 }} 
-                    />
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
         {/* Quick Actions Grid */}
-        <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px] mb-3 px-1">QUICK TOOLS</Text>
+        <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px] mb-3 px-1 mt-4">QUICK TOOLS</Text>
         <View className="flex-row flex-wrap justify-between">
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
             <Search size={20} color="#38BDF8" className="mb-2.5" />
             <Text className="text-slate-50 text-xs font-bold mb-1">Pre-SIP Check</Text>
-            <Text className="text-slate-400 text-[10px] leading-3">Check overlap before buying</Text>
           </TouchableOpacity>
           
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
             <Target size={20} color="#38BDF8" className="mb-2.5" />
             <Text className="text-slate-50 text-xs font-bold mb-1">Goal Planner</Text>
-            <Text className="text-slate-400 text-[10px] leading-3">SIP needed for goals</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
             <CreditCard size={20} color="#38BDF8" className="mb-2.5" />
             <Text className="text-slate-50 text-xs font-bold mb-1">Debt Check</Text>
-            <Text className="text-slate-400 text-[10px] leading-3">Know your debt limits</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="w-[48%] bg-[#0f234e]/50 p-4 rounded-2xl border border-blue-500/30 mb-3">
             <Activity size={20} color="#60A5FA" className="mb-2.5" />
             <Text className="text-[#60A5FA] text-xs font-bold mb-1">Health Score</Text>
-            <Text className="text-slate-400 text-[10px] leading-3">Complete financial picture</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Free Plan Upgrade Banner */}
-        {plan === 'free' && reports.length >= 2 && (
-          <View className="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-5 mt-3">
-            <Text className="text-slate-50 text-[15px] font-bold mb-1.5">Unlock full intelligence</Text>
-            <Text className="text-slate-400 text-[12px] mb-5 leading-5">
-              Get unlimited analyses, InvestIQ Chat, PDF exports, and advanced insights.
-            </Text>
-            <TouchableOpacity className="bg-blue-600 py-3.5 rounded-xl items-center">
-              <Text className="text-white text-xs font-bold tracking-wide">UPGRADE TO PRO</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Subtle Sign Out */}
-        <View className="items-center mt-10">
-          <TouchableOpacity onPress={signOut} className="flex-row items-center py-3 px-6 rounded-full bg-slate-800/30 border border-slate-700/50">
-            <LogOut size={14} color="#64748B" />
-            <Text className="text-slate-400 text-xs font-bold ml-2">Sign Out</Text>
           </TouchableOpacity>
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
