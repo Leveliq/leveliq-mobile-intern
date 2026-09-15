@@ -166,7 +166,20 @@ export default function AppLayout() {
         sceneStyle: { backgroundColor: '#050816' },
       }}
     >
-      <Drawer.Screen name="index" options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }} />
+      {/* 1. Visible Dashboard item in Sidebar */}
+      <Drawer.Screen 
+        name="index" 
+        options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }} 
+      />
+
+      {/* 2. Hidden Report screen (opens on click, but hidden from sidebar list) */}
+      <Drawer.Screen 
+        name="report/[token]" 
+        options={{ 
+          drawerItemStyle: { display: 'none' }, // Hides from sidebar menu
+          headerShown: false, // Report page has its own custom back-button header
+        }} 
+      />
     </Drawer>
   );
 }

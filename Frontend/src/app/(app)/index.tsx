@@ -14,7 +14,7 @@ const GRADE_COLOR: Record<string, string> = {
 export default function DashboardScreen() {
   const { user, userName } = useAuth();
   const router = useRouter();
-  
+
   const [plan, setPlan] = useState<string>('free');
   const [reports, setReports] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
@@ -73,7 +73,7 @@ export default function DashboardScreen() {
   return (
     <View className="flex-1 bg-[#050816]">
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        
+
         {/* Header Section */}
         <View className="flex-row items-center justify-between mb-8">
           <View className="flex-row items-center">
@@ -89,7 +89,7 @@ export default function DashboardScreen() {
               <Text className="text-slate-400 text-xs">{user?.email}</Text>
             </View>
           </View>
-          
+
           {plan === 'premium' && (
             <View className="bg-blue-600/20 border border-blue-500/30 px-3 py-1.5 rounded-full">
               <Text className="text-[#38BDF8] text-[10px] font-bold tracking-wide">PRO</Text>
@@ -121,7 +121,7 @@ export default function DashboardScreen() {
                 {new Date(latest.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
               </Text>
             </View>
-            
+
             <View className="flex-row items-center justify-between mb-8">
               <View>
                 <Text className="text-[64px] font-black tracking-tighter" style={{ color: gc(latest.grade), lineHeight: 70 }}>
@@ -149,7 +149,10 @@ export default function DashboardScreen() {
             </View>
 
             <View className="flex-row gap-3">
-              <TouchableOpacity className="flex-1 bg-blue-600/15 border border-blue-500/30 py-3.5 rounded-xl items-center justify-center">
+              <TouchableOpacity
+                onPress={() => router.push(`/(app)/report/${latest.share_token}`)}
+                className="flex-1 bg-blue-600/15 border border-blue-500/30 py-3.5 rounded-xl items-center justify-center"
+              >
                 <Text className="text-[#38BDF8] text-[13px] font-bold">View Report</Text>
               </TouchableOpacity>
               <TouchableOpacity className="flex-1 bg-blue-600 py-3.5 rounded-xl items-center justify-center flex-row">
@@ -167,7 +170,7 @@ export default function DashboardScreen() {
             <Search size={20} color="#38BDF8" className="mb-2.5" />
             <Text className="text-slate-50 text-xs font-bold mb-1">Pre-SIP Check</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
             <Target size={20} color="#38BDF8" className="mb-2.5" />
             <Text className="text-slate-50 text-xs font-bold mb-1">Goal Planner</Text>
