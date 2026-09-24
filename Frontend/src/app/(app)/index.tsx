@@ -182,6 +182,15 @@ export default function DashboardScreen() {
             <Text className="text-slate-500 text-[10px]">Check overlap before buying</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/debt' as any)}
+            className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3"
+          >
+            <CreditCard size={20} color="#38BDF8" style={{ marginBottom: 10 }} />
+            <Text className="text-slate-50 text-xs font-bold mb-1">Debt Check</Text>
+            <Text className="text-slate-500 text-[10px]">Know your debt health</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
             <Target size={20} color="#38BDF8" style={{ marginBottom: 10 }} />
             <Text className="text-slate-50 text-xs font-bold mb-1">Goal Planner</Text>

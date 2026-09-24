@@ -75,15 +75,13 @@ function CustomDrawerContent(props: any) {
               key={item.label}
               activeOpacity={0.7}
               onPress={() => handleNavigate(item.route)}
-              className={`flex-row items-center mx-3 mb-1 px-4 py-3.5 rounded-xl ${
-                isActive ? 'bg-blue-600/15 border border-blue-500/20' : ''
-              }`}
+              className={`flex-row items-center mx-3 mb-1 px-4 py-3.5 rounded-xl ${isActive ? 'bg-blue-600/15 border border-blue-500/20' : ''
+                }`}
             >
               <Icon size={18} color={isActive ? '#38BDF8' : '#94A3B8'} />
               <Text
-                className={`ml-3 text-[13px] font-bold tracking-wide ${
-                  isActive ? 'text-[#38BDF8]' : 'text-slate-300'
-                }`}
+                className={`ml-3 text-[13px] font-bold tracking-wide ${isActive ? 'text-[#38BDF8]' : 'text-slate-300'
+                  }`}
               >
                 {item.label}
               </Text>
@@ -174,7 +172,7 @@ export default function AppLayout() {
       <Drawer.Screen name="index" options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }} />
       <Drawer.Screen name="analyze" options={{ title: 'Analyze Portfolio', drawerLabel: 'Analyze Portfolio' }} />
       <Drawer.Screen name="sip-checker" options={{ title: 'Pre-SIP Check', drawerLabel: 'Pre-SIP Check' }} />
-
+      <Drawer.Screen name="debt" options={{ title: 'Debt Check', drawerLabel: 'Debt Check' }} />
       <Drawer.Screen
         name="report/[token]"
         options={{
