@@ -105,7 +105,11 @@ export default function DashboardScreen() {
             <Text className="text-slate-400 text-sm text-center mb-6 px-2">
               Analyze your portfolio to see your Health Score and track it over time.
             </Text>
-            <TouchableOpacity className="w-full flex-row items-center justify-center bg-blue-600 py-3.5 rounded-xl">
+
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/analyze' as any)}
+              className="w-full flex-row items-center justify-center bg-blue-600 py-3.5 rounded-xl"
+            >
               <Upload size={16} color="#FFF" />
               <Text className="text-white font-bold ml-2">Analyze Portfolio</Text>
             </TouchableOpacity>
@@ -155,7 +159,10 @@ export default function DashboardScreen() {
               >
                 <Text className="text-[#38BDF8] text-[13px] font-bold">View Report</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 bg-blue-600 py-3.5 rounded-xl items-center justify-center flex-row">
+              <TouchableOpacity
+                onPress={() => router.push('/(app)/analyze' as any)}
+                className="flex-1 bg-blue-600 py-3.5 rounded-xl items-center justify-center flex-row"
+              >
                 <Upload size={14} color="#FFF" />
                 <Text className="text-white text-[13px] font-bold ml-2">Analyze</Text>
               </TouchableOpacity>
