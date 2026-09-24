@@ -1,8 +1,7 @@
 {
   "cli": {
     "version": ">= 24.7.0",
-    "appVersionSource": "remote",
-    "appDir": "frontend"
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
