@@ -1,11 +1,13 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
+import * as AuthSession from 'expo-auth-session';
 import { supabase } from '../lib/supabase';
 
-// Required for web browser auth (Google/Apple)
+// Required for web browser OAuth redirects
 WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
@@ -27,37 +29,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Initial Session Fetch (Supabase automatically reads from AsyncStorage here)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    let isMounted = true;
+
+    // 1. Initial Session Fetch
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (isMounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      })
+      .catch((err) => {
+        console.error('Error fetching Supabase session on startup:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    // 2. Auth State Change Listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     });
 
-    // 2. Listen for Auth Changes (Login, Logout, Token Refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // 3. Handle Deep Links (For OAuth redirects coming back to the app)
+    // 3. Deep Link Listener for OAuth Redirects
     const handleDeepLink = async (event: { url: string }) => {
       if (!event.url) return;
-      
+      console.log('🔗 [OAuth] Incoming deep link:', event.url);
       try {
-        // Safely parse URL using Expo Linking
-        const parsedUrl = Linking.parse(event.url);
-        const params = new URLSearchParams(parsedUrl.fragment || parsedUrl.queryParams || '');
+        const url = new URL(event.url);
+        const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
 
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-        const code = params.get('code');
+        const accessToken = fragmentParams.get('access_token');
+        const refreshToken = fragmentParams.get('refresh_token');
+        const code = url.searchParams.get('code') || fragmentParams.get('code');
 
         if (accessToken && refreshToken) {
-          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!error && data.session && isMounted) {
+            setSession(data.session);
+            setUser(data.user);
+          }
         } else if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session && isMounted) {
+            setSession(data.session);
+            setUser(data.user);
+          }
         }
       } catch (e) {
         console.error('Error parsing incoming deep link:', e);
@@ -66,7 +93,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const linkSubscription = Linking.addEventListener('url', handleDeepLink);
 
+    // Check if app was cold-started by a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url && isMounted) {
+        handleDeepLink({ url });
+      }
+    });
+
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
       linkSubscription.remove();
     };
@@ -74,7 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     if (!error) {
       setSession(data.session);
       setUser(data.user);
@@ -88,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { full_name: name.trim() } }, // Save name to metadata
+      options: {
+        data: { full_name: name.trim() },
+      },
     });
     if (!error) {
       setSession(data.session);
@@ -98,77 +138,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error, user: data.user };
   };
 
- const signInWithGoogle = async () => {
-  setLoading(true);
-  try {
-    // 1. Generate mobile-compatible redirect URL
-    const redirectUrl = Linking.createURL('/');
-    console.log('🔗 AUTH REDIRECT URL:', redirectUrl);
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    try {
+      if (Platform.OS === 'android') {
+        await WebBrowser.warmUpAsync();
+      }
 
-    // 2. Request Google OAuth URL from Supabase
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true, // Don't redirect native app, return URL to JS
-        queryParams: {
-          prompt: 'select_account',
+      // Generate redirect URI that works for both Standalone/DevClient (leveliq://) and Expo Go
+      const redirectUrl = AuthSession.makeRedirectUri({
+        scheme: 'leveliq',
+        path: 'auth/callback',
+      });
+      console.log('🔗 [OAuth] Redirect URL generated:', redirectUrl);
+      console.warn('🔗 [OAuth] Redirect URL generated: ' + redirectUrl);
+
+      // Alert the exact URL so you can verify it character-for-character against Supabase
+      if (__DEV__) {
+        Alert.alert(
+          'OAuth Redirect URL',
+          `Your app is sending this exact URL to Supabase:\n\n${redirectUrl}\n\nMake sure this EXACT string is in your Supabase Redirect URLs!`,
+          [{ text: 'Proceed to Google' }]
+        );
+      }
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
-      },
-    });
+      });
 
-    if (error || !data?.url) {
+      if (error || !data?.url) {
+        return { error: error || new Error('Could not initiate Google sign-in') };
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const accessToken = fragmentParams.get('access_token');
+        const refreshToken = fragmentParams.get('refresh_token');
+        const code = url.searchParams.get('code') || fragmentParams.get('code');
+
+        if (accessToken && refreshToken) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (sessionError) throw sessionError;
+          setSession(sessionData.session);
+          setUser(sessionData.user);
+        } else if (code) {
+          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          if (sessionError) throw sessionError;
+          setSession(sessionData.session);
+          setUser(sessionData.user);
+        }
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        // If the OS opened the app via deep link, session might already be set or in progress
+        const { data: currentSession } = await supabase.auth.getSession();
+        if (currentSession?.session) {
+          setSession(currentSession.session);
+          setUser(currentSession.session.user);
+          return { error: null };
+        }
+        return { error: new Error('Google sign-in was cancelled.') };
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
+    } finally {
+      if (Platform.OS === 'android') {
+        await WebBrowser.coolDownAsync();
+      }
       setLoading(false);
-      return { error: error || new Error('Could not initiate Google sign-in') };
     }
-
-    // 3. Open system auth browser sheet
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-    // 4. Handle browser result when user selects Google account
-    if (result.type === 'success' && result.url) {
-      // Extract tokens from URL (handles both hash # and query ?)
-      let paramsString = '';
-      if (result.url.includes('#')) {
-        paramsString = result.url.split('#')[1];
-      } else if (result.url.includes('?')) {
-        paramsString = result.url.split('?')[1];
-      }
-
-      const params = new URLSearchParams(paramsString);
-      const accessToken = params.get('access_token');
-      const refreshToken = params.get('refresh_token');
-      const code = params.get('code');
-
-      if (accessToken && refreshToken) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (sessionError) throw sessionError;
-        setSession(sessionData.session);
-        setUser(sessionData.user);
-      } else if (code) {
-        const { data: codeData, error: codeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (codeError) throw codeError;
-        setSession(codeData.session);
-        setUser(codeData.user);
-      }
-    }
-
-    setLoading(false);
-    return { error: null };
-  } catch (err: any) {
-    console.error('Google Sign In Error:', err);
-    setLoading(false);
-    return { error: err };
-  }
-};
+  };
 
   const signOut = async () => {
-    setUser(null);
-    setSession(null);
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      setUser(null);
+      setSession(null);
+    }
   };
 
   const userName =
@@ -178,7 +237,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, loading, userName, signIn, signUp, signInWithGoogle, signOut }}
+      value={{
+        user,
+        session,
+        loading,
+        userName,
+        signIn,
+        signUp,
+        signInWithGoogle,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

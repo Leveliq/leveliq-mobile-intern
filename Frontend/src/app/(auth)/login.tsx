@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, StatusBar,
-} from 'react-native';
-import { SvgXml } from 'react-native-svg';
+import React from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import AuthScreen from '../../screens/AuthScreen';
 
-// Notice the ../../ instead of ../
-import { useAuth } from '../../context/AuthContext'; 
-
-// ... KEEP ALL YOUR SVG STRINGS AND COMPONENT CODE EXACTLY THE SAME ...
-// Change the function name to match the route conceptually:
-export default function LoginScreen() {
-  // ... rest of your code ...
+export default function LoginRoute() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const initialMode = mode === 'signup' ? 'signup' : 'signin';
+  return <AuthScreen initialMode={initialMode} />;
 }

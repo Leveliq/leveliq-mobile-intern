@@ -1,11 +1,10 @@
-// src/app/_layout.tsx
+// app/_layout.tsx
 import React, { useState, useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import '../../global.css';
-
+import '../../global.css'; 
 import SplashScreen from '../components/splash/SplashScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
@@ -19,15 +18,21 @@ function AuthGuard() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inAppGroup = segments[0] === '(app)';
+    const isAuthCallback = segments[0] === 'auth';
+
+    // Allow OAuth callback route to process without interference
+    if (isAuthCallback) {
+      return;
+    }
 
     if (!user && !inAuthGroup) {
-      // Not logged in + trying to view secure page -> Login
+      // Redirect to Login if unauthenticated
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
-      // Logged in + trying to view login -> Dashboard
+      // Redirect to Dashboard if authenticated but on auth screens
       router.replace('/(app)');
     } else if (user && !inAppGroup && !inAuthGroup) {
-      // Catch-all: Logged in but at root -> Dashboard
+      // Direct root access fallback
       router.replace('/(app)');
     }
   }, [user, loading, segments]);

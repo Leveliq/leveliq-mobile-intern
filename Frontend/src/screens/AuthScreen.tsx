@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SvgXml } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 
 const svgLogoMini = `
@@ -37,10 +38,15 @@ const svgGoogle = `
 </svg>
 `;
 
-export default function AuthScreen() {
-  const { signIn, signUp, signInWithGoogle, loading: authLoading } = useAuth();
+interface AuthScreenProps {
+  initialMode?: 'signin' | 'signup';
+}
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps = {}) {
+  const { signIn, signUp, signInWithGoogle, loading: authLoading } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +56,12 @@ export default function AuthScreen() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
 
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
@@ -95,7 +107,7 @@ export default function AuthScreen() {
   };
 
   return (
-    <View className="flex-1 bg-[#050816]">
+    <View className="flex-1 bg-[#050816]" style={{ flex: 1, backgroundColor: '#050816' }}>
       <StatusBar barStyle="light-content" backgroundColor="#050816" />
 
       {/* Ambient background glows */}
@@ -103,7 +115,18 @@ export default function AuthScreen() {
       <View className="absolute bottom-[-130px] self-center w-[320px] h-[320px] rounded-full bg-[#0C4A6E] opacity-[0.22]" pointerEvents="none" />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20, paddingHorizontal: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingTop: Math.max(insets.top, 24),
+            paddingBottom: Math.max(insets.bottom, 24),
+            paddingHorizontal: 20,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           
           <View className="w-full max-w-[420px] items-center">
             
@@ -123,7 +146,17 @@ export default function AuthScreen() {
             {/* Auth Card Container */}
             <View 
               className="w-full bg-[#0f172a]/85 rounded-[20px] border border-sky-400/15 p-[18px]"
-              style={{ shadowColor: '#000000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.5, shadowRadius: 24, elevation: 10 }}
+              style={{
+                backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                borderColor: 'rgba(56, 189, 248, 0.15)',
+                borderWidth: 1,
+                borderRadius: 20,
+                shadowColor: '#000000',
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.5,
+                shadowRadius: 24,
+                elevation: 10,
+              }}
             >
               
               {/* GOOGLE SIGN IN BUTTON */}
@@ -147,7 +180,9 @@ export default function AuthScreen() {
               {/* Divider */}
               <View className="flex-row items-center my-3.5">
                 <View className="flex-1 h-[1px] bg-slate-400/15" />
-                <Text className="text-slate-500 text-[9px] font-bold tracking-[1.1px] mx-2.5">OR SIGN IN WITH EMAIL</Text>
+                <Text className="text-slate-500 text-[9px] font-bold tracking-[1.1px] mx-2.5">
+                  {mode === 'signin' ? 'OR SIGN IN WITH EMAIL' : 'OR REGISTER WITH EMAIL'}
+                </Text>
                 <View className="flex-1 h-[1px] bg-slate-400/15" />
               </View>
 
@@ -157,7 +192,7 @@ export default function AuthScreen() {
                   activeOpacity={0.8}
                   onPress={() => { setMode('signin'); setErrorMessage(null); setSuccessMessage(null); }}
                   className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signin' ? 'bg-blue-600' : ''}`}
-                  style={mode === 'signin' ? { shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
+                  style={mode === 'signin' ? { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
                   <Text className={`text-xs tracking-[0.3px] ${mode === 'signin' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Sign In</Text>
                 </TouchableOpacity>
@@ -166,7 +201,7 @@ export default function AuthScreen() {
                   activeOpacity={0.8}
                   onPress={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
                   className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signup' ? 'bg-blue-600' : ''}`}
-                  style={mode === 'signup' ? { shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
+                  style={mode === 'signup' ? { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
                   <Text className={`text-xs tracking-[0.3px] ${mode === 'signup' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Create Account</Text>
                 </TouchableOpacity>
@@ -192,6 +227,7 @@ export default function AuthScreen() {
                   <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">FULL NAME</Text>
                   <TextInput
                     className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
+                    style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
                     placeholder="Enter your full name"
                     placeholderTextColor="#475569"
                     value={name}
@@ -207,6 +243,7 @@ export default function AuthScreen() {
                 <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">EMAIL ADDRESS</Text>
                 <TextInput
                   className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
+                  style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
                   placeholder="your.email@example.com"
                   placeholderTextColor="#475569"
                   value={email}
@@ -227,6 +264,7 @@ export default function AuthScreen() {
                 </View>
                 <TextInput
                   className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
+                  style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
                   placeholder="••••••••••••"
                   placeholderTextColor="#475569"
                   value={password}
@@ -242,7 +280,19 @@ export default function AuthScreen() {
                 onPress={handleSubmit}
                 disabled={isSubmitting || authLoading || isGoogleLoading}
                 className={`bg-blue-600 rounded-xl py-3 items-center justify-center mt-1 ${(isSubmitting || authLoading) ? 'opacity-65' : ''}`}
-                style={{ shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4 }}
+                style={{
+                  backgroundColor: '#2563EB',
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#38BDF8',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 10,
+                  elevation: 4,
+                  opacity: (isSubmitting || authLoading) ? 0.65 : 1,
+                }}
               >
                 {isSubmitting || authLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
@@ -252,6 +302,25 @@ export default function AuthScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
+
+              {/* Footer Toggle Link */}
+              <View className="flex-row items-center justify-center mt-4">
+                <Text className="text-slate-400 text-xs">
+                  {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setMode(mode === 'signin' ? 'signup' : 'signin');
+                    setErrorMessage(null);
+                    setSuccessMessage(null);
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text className="text-[#38BDF8] text-xs font-bold">
+                    {mode === 'signin' ? 'Create one' : 'Sign in'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
             </View>
           </View>
