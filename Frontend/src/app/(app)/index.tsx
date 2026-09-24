@@ -173,24 +173,31 @@ export default function DashboardScreen() {
         {/* Quick Actions Grid */}
         <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px] mb-3 px-1 mt-4">QUICK TOOLS</Text>
         <View className="flex-row flex-wrap justify-between">
-          <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
-            <Search size={20} color="#38BDF8" className="mb-2.5" />
+          <TouchableOpacity
+            onPress={() => router.push('/(app)/sip-checker' as any)}
+            className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3"
+          >
+            <Search size={20} color="#38BDF8" style={{ marginBottom: 10 }} />
             <Text className="text-slate-50 text-xs font-bold mb-1">Pre-SIP Check</Text>
+            <Text className="text-slate-500 text-[10px]">Check overlap before buying</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
-            <Target size={20} color="#38BDF8" className="mb-2.5" />
+            <Target size={20} color="#38BDF8" style={{ marginBottom: 10 }} />
             <Text className="text-slate-50 text-xs font-bold mb-1">Goal Planner</Text>
+            <Text className="text-slate-500 text-[10px]">Coming soon</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="w-[48%] bg-[#0f172a] p-4 rounded-2xl border border-sky-400/15 mb-3">
-            <CreditCard size={20} color="#38BDF8" className="mb-2.5" />
+            <CreditCard size={20} color="#38BDF8" style={{ marginBottom: 10 }} />
             <Text className="text-slate-50 text-xs font-bold mb-1">Debt Check</Text>
+            <Text className="text-slate-500 text-[10px]">Coming soon</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="w-[48%] bg-[#0f234e]/50 p-4 rounded-2xl border border-blue-500/30 mb-3">
-            <Activity size={20} color="#60A5FA" className="mb-2.5" />
+            <Activity size={20} color="#60A5FA" style={{ marginBottom: 10 }} />
             <Text className="text-[#60A5FA] text-xs font-bold mb-1">Health Score</Text>
+            <Text className="text-slate-500 text-[10px]">On latest report</Text>
           </TouchableOpacity>
         </View>
 

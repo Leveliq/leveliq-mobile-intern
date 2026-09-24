@@ -37,6 +37,15 @@ function CustomDrawerContent(props: any) {
   const initial = displayName.charAt(0).toUpperCase();
   const activeRoute = props.state?.routes?.[props.state.index]?.name;
 
+  const handleNavigate = (route: string) => {
+    props.navigation?.closeDrawer?.();
+    if (route === 'index') {
+      router.push('/(app)');
+    } else {
+      router.push(`/(app)/${route}` as any);
+    }
+  };
+
   return (
     <View
       className="flex-1 bg-[#050816]"
@@ -57,27 +66,24 @@ function CustomDrawerContent(props: any) {
       >
         {MENU.map((item) => {
           const Icon = item.icon;
-          const isActive = activeRoute === item.route || (item.route === 'index' && activeRoute === 'index');
+          const isActive =
+            activeRoute === item.route ||
+            (item.route === 'index' && activeRoute === 'index');
 
           return (
             <TouchableOpacity
               key={item.label}
               activeOpacity={0.7}
-              onPress={() => {
-                props.navigation?.closeDrawer?.();
-                if (item.route === 'index') {
-                  router.push('/(app)');
-                } else {
-                  router.push(`/(app)/${item.route}` as any);
-                }
-              }}
-              className={`flex-row items-center mx-3 mb-1 px-4 py-3.5 rounded-xl ${isActive ? 'bg-blue-600/15 border border-blue-500/20' : ''
-                }`}
+              onPress={() => handleNavigate(item.route)}
+              className={`flex-row items-center mx-3 mb-1 px-4 py-3.5 rounded-xl ${
+                isActive ? 'bg-blue-600/15 border border-blue-500/20' : ''
+              }`}
             >
               <Icon size={18} color={isActive ? '#38BDF8' : '#94A3B8'} />
               <Text
-                className={`ml-3 text-[13px] font-bold tracking-wide ${isActive ? 'text-[#38BDF8]' : 'text-slate-300'
-                  }`}
+                className={`ml-3 text-[13px] font-bold tracking-wide ${
+                  isActive ? 'text-[#38BDF8]' : 'text-slate-300'
+                }`}
               >
                 {item.label}
               </Text>
@@ -86,7 +92,7 @@ function CustomDrawerContent(props: any) {
         })}
       </ScrollView>
 
-      {/* Bottom: user icon only → expand for email + sign out */}
+      {/* Bottom user card */}
       <View className="border-t border-sky-400/10 p-4">
         <TouchableOpacity
           activeOpacity={0.8}
@@ -165,24 +171,16 @@ export default function AppLayout() {
         sceneStyle: { backgroundColor: '#050816' },
       }}
     >
-      {/* 1. Visible Dashboard item in Sidebar */}
-      <Drawer.Screen
-        name="index"
-        options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }}
-      />
+      <Drawer.Screen name="index" options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }} />
+      <Drawer.Screen name="analyze" options={{ title: 'Analyze Portfolio', drawerLabel: 'Analyze Portfolio' }} />
+      <Drawer.Screen name="sip-checker" options={{ title: 'Pre-SIP Check', drawerLabel: 'Pre-SIP Check' }} />
 
-      {/* 2. Hidden Report screen (opens on click, but hidden from sidebar list) */}
       <Drawer.Screen
         name="report/[token]"
         options={{
-          drawerItemStyle: { display: 'none' }, // Hides from sidebar menu
-          headerShown: false, // Report page has its own custom back-button header
+          drawerItemStyle: { display: 'none' },
+          headerShown: false,
         }}
-      />
-
-      <Drawer.Screen
-        name="analyze"
-        options={{ title: 'Analyze Portfolio', drawerLabel: 'Analyze Portfolio' }}
       />
     </Drawer>
   );
