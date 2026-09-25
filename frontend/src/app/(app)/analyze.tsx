@@ -1,7 +1,7 @@
 // src/app/(app)/analyze.tsx
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, TouchableOpacity, TextInput, useWindowDimensions,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -76,6 +76,7 @@ const inputStyle = (hasError?: boolean) => ({
   borderWidth: 1,
   borderColor: hasError ? COLORS.red : COLORS.inputBorder,
   fontSize: 13,
+  minHeight: 46,
 });
 
 // ══════════════════════════════════════════════════════════════
@@ -373,12 +374,12 @@ function ScreenshotUpload({ userId, onComplete }: { userId: string; onComplete: 
       title="Upload a portfolio screenshot"
       subtitle="Zerodha · Groww · Angel One · Kuvera"
       badgeText="JPG / PNG · Max 5MB"
-      parsingTitle="AI is reading your screenshot..."
-      parsingSubtitle="Extracting fund names and values"
+      parsingTitle="Reading your screenshot..."
+      parsingSubtitle="Finding fund names and values"
       pickFile={pickFile}
       tip={
         <View style={{ backgroundColor: COLORS.pinkBg, borderColor: COLORS.pinkBorder, borderWidth: 1, borderRadius: 12, padding: 12, marginTop: 12 }}>
-          <Text style={{ color: COLORS.pinkLight, fontSize: 12, textAlign: 'center' }}>🤖 AI reads your screenshot automatically. You just confirm what it found.</Text>
+          <Text style={{ color: COLORS.pinkLight, fontSize: 12, textAlign: 'center', lineHeight: 18 }}>Upload a clear screenshot. You can review the detected holdings before continuing.</Text>
         </View>
       }
     />
@@ -440,6 +441,8 @@ function ManualEntry({ userId, onComplete }: { userId: string; onComplete: (toke
   ]);
   const [loading, setLoading] = useState(false);
   const { suggestions, activeIndex, search, clear } = useDebouncedFundSearch();
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
 
   const selectFund = (fund: any, index: number) => {
     const n = [...holdings];
@@ -507,7 +510,7 @@ function ManualEntry({ userId, onComplete }: { userId: string; onComplete: (toke
         const error = h.touched ? rowStatus(h) : null;
         return (
           <View key={i} style={{ marginBottom: 12 }}>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            <View style={{ flexDirection: compact ? 'column' : 'row', gap: 8 }}>
               <View style={{ flex: 1, position: 'relative' }}>
                 <TextInput
                   style={inputStyle(!!error)}
@@ -542,7 +545,7 @@ function ManualEntry({ userId, onComplete }: { userId: string; onComplete: (toke
               </View>
 
               <TextInput
-                style={[inputStyle(!!error), { width: 100 }]}
+                style={[inputStyle(!!error), compact ? { width: '100%' } : { flex: 0, width: 112 }]}
                 placeholder="₹ amount"
                 placeholderTextColor={COLORS.textFaint}
                 value={h.value}
@@ -551,7 +554,7 @@ function ManualEntry({ userId, onComplete }: { userId: string; onComplete: (toke
               />
 
               {holdings.length > 2 && (
-                <TouchableOpacity onPress={() => removeRow(i)} style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
+                <TouchableOpacity onPress={() => removeRow(i)} style={{ width: compact ? '100%' : 40, height: compact ? 42 : 40, borderRadius: 10, borderWidth: compact ? 1 : 0, borderColor: COLORS.redBorder, alignItems: 'center', justifyContent: 'center' }}>
                   <Trash2 size={16} color={COLORS.red} />
                 </TouchableOpacity>
               )}
@@ -563,10 +566,10 @@ function ManualEntry({ userId, onComplete }: { userId: string; onComplete: (toke
 
       <TouchableOpacity
         onPress={() => setHoldings([...holdings, { name: '', value: '', scheme_code: '', touched: false }])}
-        style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(56,189,248,0.3)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, alignSelf: 'flex-start', marginBottom: 16 }}
+        style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(56,189,248,0.3)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: compact ? 4 : 16, alignSelf: 'flex-start', marginBottom: 16 }}
       >
         <Plus size={14} color={COLORS.accent} />
-        <Text style={{ color: COLORS.accent, fontSize: 12, fontWeight: '700', marginLeft: 6 }}>Add row</Text>
+        <Text style={{ color: COLORS.accent, fontSize: compact ? 10 : 12, fontWeight: '700', marginLeft: 6 }}>Add row</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={handleAnalyze} disabled={loading} style={primaryButtonStyle(loading)}>
@@ -593,6 +596,9 @@ const TABS: { id: Tab; label: string; icon: any }[] = [
 ];
 
 export default function AnalyzeScreen() {
+  const { width } = useWindowDimensions();
+  const compact = width < 380;
+  const horizontalPadding = compact ? 14 : 20;
   const [active, setActive] = useState<Tab>('manual');
   const { user } = useAuth();
   const router = useRouter();
@@ -612,7 +618,7 @@ export default function AnalyzeScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+        contentContainerStyle={{ paddingHorizontal: horizontalPadding, paddingTop: compact ? 14 : 20, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -621,15 +627,15 @@ export default function AnalyzeScreen() {
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.green, marginRight: 8 }} />
             <Text style={{ color: '#4ADE80', fontSize: 11, fontWeight: '600' }}>Portfolio Analysis</Text>
           </View>
-          <Text style={{ color: COLORS.textPrimary, fontSize: 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 }}>Add your portfolio</Text>
+          <Text style={{ color: COLORS.textPrimary, fontSize: compact ? 23 : 26, fontWeight: '800', letterSpacing: -0.5, marginBottom: 8 }}>Add your portfolio</Text>
           <Text style={{ color: COLORS.textMuted, fontSize: 13, textAlign: 'center', paddingHorizontal: 16 }}>
             We scan for hidden overlaps and give you a full X-Ray report.
           </Text>
         </View>
 
         {/* Card — same treatment as AuthScreen's auth card */}
-        <View style={{ backgroundColor: COLORS.card, borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 20, padding: 20, ...cardShadow }}>
-          <View style={{ flexDirection: 'row', gap: 6, padding: 6, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 12, marginBottom: 24 }}>
+        <View style={{ backgroundColor: COLORS.card, borderColor: COLORS.cardBorder, borderWidth: 1, borderRadius: 20, padding: compact ? 12 : 20, ...cardShadow }}>
+          <View style={{ flexDirection: 'row', gap: 4, padding: 4, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 12, marginBottom: compact ? 18 : 24 }}>
             {TABS.map((t) => {
               const Icon = t.icon;
               const isActive = active === t.id;
@@ -639,7 +645,7 @@ export default function AnalyzeScreen() {
                   onPress={() => setActive(t.id)}
                   style={{
                     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-                    paddingVertical: 10, borderRadius: 9,
+                    paddingVertical: compact ? 11 : 10, paddingHorizontal: compact ? 2 : 6, borderRadius: 9,
                     backgroundColor: isActive ? COLORS.primary : 'transparent',
                     ...(isActive ? { shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 3 } : {}),
                   }}
