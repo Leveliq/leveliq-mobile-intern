@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Android build and cache
+android/.gradle/
+android/.cxx/
+android/build/
+android/app/build/
+android/.kotlin/
+android/app/.cxx/
+
+# iOS build
+ios/build/
+ios/Pods/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Environment files
+.env.local
+.env.*.local
