@@ -1,35 +1,19 @@
-// src/components/chat/chatApi.ts
 import { supabase } from '../../lib/supabase';
 import { ChatMessage, ChatSession } from './types';
 
-const API = process.env.EXPO_PUBLIC_WEB_URL;
+const API =  process.env.EXPO_PUBLIC_WEB_URL ;
 
-export async function saveMessage(
-  userId: string,
-  sessionId: string,
-  role: 'user' | 'assistant',
-  message: string
-): Promise<void> {
+export async function saveMessage(userId: string, sessionId: string, role: 'user' | 'assistant', message: string): Promise<void> {
   try {
-    await supabase.from('chat_messages').insert({
-      user_id: userId,
-      session_id: sessionId,
-      role,
-      message,
-    });
+    await supabase.from('chat_messages').insert({ user_id: userId, session_id: sessionId, role, message });
   } catch (e) {
-    console.warn('[Chat Exception] Failed to save message:', e);
+    console.warn('Failed to save message:', e);
   }
 }
 
-export async function sendChatMessage(
-  message: string, // Changed back to single string to match your backend
-  userPlan: string,
-  portfolioContext?: any
-): Promise<string> {
+export async function sendChatMessage(message: string, userPlan: string, portfolioContext?: any): Promise<string> {
   const targetUrl = `${API}/api/chat`;
   
-  // This exactly matches how your working web app sends the data
   const payload = {
     message, 
     portfolio_context: portfolioContext,
@@ -58,10 +42,10 @@ export async function sendChatMessage(
     }
 
     const data = await res.json();
-    return data.reply || 'No response received from the assistant.';
+    return data.reply || 'No response received.';
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      throw new Error('Request timed out. The server took too long to respond.');
+      throw new Error('Request timed out.');
     }
     throw err;
   }
@@ -69,20 +53,13 @@ export async function sendChatMessage(
 
 export async function loadSessions(userId: string): Promise<ChatSession[]> {
   try {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('session_id, message, created_at, role')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
+    const { data, error } = await supabase.from('chat_messages').select('session_id, message, created_at, role').eq('user_id', userId).order('created_at', { ascending: false });
     if (error || !data) return [];
 
     const sessionMap = new Map<string, ChatSession>();
     data.forEach((msg) => {
       if (!sessionMap.has(msg.session_id)) {
-        const firstUserMsg = data.find(
-          (m) => m.session_id === msg.session_id && m.role === 'user'
-        );
+        const firstUserMsg = data.find((m) => m.session_id === msg.session_id && m.role === 'user');
         sessionMap.set(msg.session_id, {
           session_id: msg.session_id,
           first_message: firstUserMsg?.message?.slice(0, 45) || 'New conversation',
@@ -102,21 +79,13 @@ export async function loadSessions(userId: string): Promise<ChatSession[]> {
 
 export async function loadSessionMessages(sessionId: string): Promise<ChatMessage[]> {
   try {
-    const { data, error } = await supabase
-      .from('chat_messages')
-      .select('role, message, created_at')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
-
+    const { data, error } = await supabase.from('chat_messages').select('role, message, created_at').eq('session_id', sessionId).order('created_at', { ascending: true });
     if (error || !data) return [];
 
     return data.map((m) => ({
       role: m.role as 'user' | 'assistant',
       text: m.message,
-      time: new Date(m.created_at).toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: new Date(m.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
     }));
   } catch (e) {
     return [];

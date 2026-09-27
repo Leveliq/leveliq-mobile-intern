@@ -1,4 +1,3 @@
-// src/components/chat/InvestIQChat.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -9,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Keyboard,
 } from 'react-native';
 import { X, Sparkles, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
@@ -40,42 +40,41 @@ export default function InvestIQChat({
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [plan] = useState<string>('free');
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}`);
 
   const scrollRef = useRef<ScrollView>(null);
-
   const userAvatar = user?.user_metadata?.avatar_url;
   const userInitial = (userName || user?.email || 'U').charAt(0).toUpperCase();
 
   useEffect(() => {
-    if (visible && user) {
+    if (visible) {
       if (targetSessionId) {
         handleSelectSession(targetSessionId);
       } else {
         startNewChat();
       }
     }
-  }, [visible, targetSessionId, user]);
+  }, [visible, targetSessionId]);
 
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }, [messages, loading]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || loading || !user) return;
+    if (!input.trim() || loading) return; // Removed strict !user check so send always fires
+    
     const userText = input.trim();
     setInput('');
-
     setMessages((prev) => [...prev, { role: 'user', text: userText, time: getTime() }]);
     setLoading(true);
 
-    await saveMessage(user.id, sessionId, 'user', userText);
+    const activeUserId = user?.id || 'anonymous';
+    await saveMessage(activeUserId, sessionId, 'user', userText);
 
     try {
-      const reply = await sendChatMessage(userText, plan, portfolioContext);
+      const reply = await sendChatMessage(userText, 'free', portfolioContext);
       setMessages((prev) => [...prev, { role: 'assistant', text: reply, time: getTime() }]);
-      await saveMessage(user.id, sessionId, 'assistant', reply);
+      await saveMessage(activeUserId, sessionId, 'assistant', reply);
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
@@ -84,7 +83,7 @@ export default function InvestIQChat({
     } finally {
       setLoading(false);
     }
-  }, [input, loading, user, sessionId, plan, portfolioContext]);
+  }, [input, loading, user, sessionId, portfolioContext]);
 
   const startNewChat = () => {
     setMessages([WELCOME_MESSAGE]);
@@ -94,28 +93,19 @@ export default function InvestIQChat({
   const handleSelectSession = async (id: string) => {
     setLoading(true);
     const msgs = await loadSessionMessages(id);
-    if (msgs.length > 0) {
-      setMessages(msgs);
-    } else {
-      setMessages([WELCOME_MESSAGE]);
-    }
+    setMessages(msgs.length > 0 ? msgs : [WELCOME_MESSAGE]);
     setSessionId(id);
     setLoading(false);
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#050816' }}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {/* Header */}
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1, backgroundColor: '#050816' }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <SafeAreaView style={{ flex: 1 }}>
+          
           <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-slate-800/80 bg-[#050816]">
             <View className="flex-row items-center gap-3">
               <View className="w-9 h-9 rounded-full bg-blue-600/20 border border-blue-500/30 items-center justify-center">
@@ -131,52 +121,34 @@ export default function InvestIQChat({
             </View>
 
             <View className="flex-row items-center gap-2">
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={startNewChat}
-                className="p-2 rounded-full bg-slate-800/60"
-              >
+              <TouchableOpacity activeOpacity={0.7} onPress={startNewChat} className="p-2 rounded-full bg-slate-800/60">
                 <RefreshCw size={16} color="#94A3B8" />
               </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={onClose}
-                className="p-2 rounded-full bg-slate-800/60"
-              >
+              <TouchableOpacity activeOpacity={0.7} onPress={onClose} className="p-2 rounded-full bg-slate-800/60">
                 <X size={18} color="#94A3B8" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Messages Feed */}
           <ScrollView
             ref={scrollRef}
             contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
-            keyboardShouldPersistTaps="handled"
-            style={{ flex: 1, backgroundColor: '#050816' }}
+            keyboardDismissMode="interactive"
+            onScrollBeginDrag={Keyboard.dismiss}
+            style={{ flex: 1 }}
           >
             {messages.map((msg, i) => (
-              <ChatBubble
-                key={i}
-                message={msg}
-                userAvatar={userAvatar}
-                userInitial={userInitial}
-              />
+              <ChatBubble key={i} message={msg} userAvatar={userAvatar} userInitial={userInitial} />
             ))}
             {loading && <TypingIndicator />}
           </ScrollView>
 
-          {/* Floating Pill Input */}
-          <View className="bg-[#050816] pb-1">
-            <ChatInput
-              value={input}
-              onChangeText={setInput}
-              onSend={handleSend}
-              disabled={loading}
-            />
+          <View className="bg-[#050816] pb-2">
+            <ChatInput value={input} onChangeText={setInput} onSend={handleSend} disabled={loading} />
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
+
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
