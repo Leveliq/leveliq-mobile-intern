@@ -2,7 +2,7 @@
 import { supabase } from '../../lib/supabase';
 import { ChatMessage, ChatSession } from './types';
 
-const API = process.env.EXPO_PUBLIC_API_URL;
+const API = process.env.EXPO_PUBLIC_WEB_URL;
 
 export async function saveMessage(
   userId: string,
@@ -23,19 +23,21 @@ export async function saveMessage(
 }
 
 export async function sendChatMessage(
-  messages: { role: string; content: string }[],
+  message: string, // Changed back to single string to match your backend
   userPlan: string,
   portfolioContext?: any
 ): Promise<string> {
   const targetUrl = `${API}/api/chat`;
+  
+  // This exactly matches how your working web app sends the data
   const payload = {
-    messages, // Sending full conversation history
+    message, 
     portfolio_context: portfolioContext,
     user_plan: userPlan,
   };
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
     const res = await fetch(targetUrl, {
@@ -52,7 +54,7 @@ export async function sendChatMessage(
 
     if (!res.ok) {
       const errorText = await res.text();
-      throw new Error(`Server returned status ${res.status}: ${errorText}`);
+      throw new Error(`Server Error ${res.status}: ${errorText}`);
     }
 
     const data = await res.json();

@@ -1,6 +1,6 @@
 // src/app/(app)/_layout.tsx
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Drawer } from 'expo-router/drawer';
 import { useRouter } from 'expo-router';
 import {
@@ -13,14 +13,14 @@ import {
   LogOut,
   ChevronUp,
   ChevronDown,
-  Sparkles,
+  Plus,
   MessageSquare,
-  History,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import InvestIQChat from '../../components/chat/InvestIQChat';
 import FloatingChatButton from '../../components/chat/FloatingChatButton';
+import { loadSessions } from '../../components/chat/chatApi';
 
 const MENU = [
   { label: 'Dashboard', icon: LayoutDashboard, route: 'index' },
@@ -31,12 +31,9 @@ const MENU = [
   { label: 'Health Score', icon: Activity, route: 'health' },
 ];
 
-// ══════════════════════════════════════════════════════════════
-// DRAWER CONTENT
-// ══════════════════════════════════════════════════════════════
 interface DrawerContentProps {
   drawerProps: any;
-  onOpenChat: (withHistory: boolean) => void;
+  onOpenChat: (sessionId?: string) => void;
 }
 
 function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
@@ -44,11 +41,27 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isUserExpanded, setIsUserExpanded] = useState(false);
+  
+  // Chat History State
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(2);
 
   const displayName = userName || 'Investor';
   const avatarUrl = user?.user_metadata?.avatar_url;
   const initial = displayName.charAt(0).toUpperCase();
   const activeRoute = drawerProps.state?.routes?.[drawerProps.state.index]?.name;
+
+  // Fetch history when drawer mounts/user changes
+  useEffect(() => {
+    if (user) {
+      setLoadingHistory(true);
+      loadSessions(user.id).then((data) => {
+        setSessions(data);
+        setLoadingHistory(false);
+      });
+    }
+  }, [user]);
 
   const handleNavigate = (route: string) => {
     drawerProps.navigation?.closeDrawer?.();
@@ -59,10 +72,9 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
     }
   };
 
-  const handleChatAction = (withHistory: boolean) => {
+  const handleChatAction = (sessionId?: string) => {
     drawerProps.navigation?.closeDrawer?.();
-    // Small delay so drawer closes smoothly before modal opens
-    setTimeout(() => onOpenChat(withHistory), 220);
+    setTimeout(() => onOpenChat(sessionId), 220);
   };
 
   return (
@@ -70,20 +82,17 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
       className="flex-1 bg-[#050816]"
       style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
     >
-      {/* Brand */}
       <View className="px-6 py-5 border-b border-sky-400/10 mb-2">
         <Text className="text-slate-50 text-xl font-extrabold tracking-wide">
           Level<Text className="text-[#38BDF8]">IQ</Text>
         </Text>
       </View>
 
-      {/* Menu */}
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingTop: 4, paddingBottom: 16 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── Main Navigation ────────────────── */}
         <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-6 mb-2 mt-1">
           NAVIGATION
         </Text>
@@ -115,58 +124,61 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
           );
         })}
 
-        {/* ─── AI Assistant Section ────────────────── */}
+        {/* ─── AI Assistant Section (Gemini Style) ────────────────── */}
         <View className="mt-6 mx-3 mb-1">
-          <View className="h-[1px] bg-sky-400/10 mb-4" />
-          <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-3 mb-3">
-            AI ASSISTANT
-          </Text>
+          <View className="h-[1px] bg-slate-800/60 mb-4 mx-3" />
 
-          {/* InvestIQ Chat Card */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => handleChatAction(false)}
-            className="bg-gradient-to-br from-blue-600/20 to-sky-500/10 border border-blue-500/30 rounded-2xl p-3.5 mb-2"
-            style={{
-              shadowColor: '#2563EB',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 4,
-            }}
-          >
-            <View className="flex-row items-center">
-              <View className="w-10 h-10 rounded-xl bg-blue-600 items-center justify-center mr-3">
-                <Sparkles size={18} color="#fff" />
-              </View>
-              <View className="flex-1">
-                <View className="flex-row items-center">
-                  <Text className="text-slate-50 text-[13px] font-extrabold">InvestIQ™</Text>
-                  <View className="w-1.5 h-1.5 rounded-full bg-green-500 ml-2" />
-                </View>
-                <Text className="text-slate-400 text-[10.5px] mt-0.5">
-                  AI-powered chat assistant
-                </Text>
-              </View>
-              <MessageSquare size={15} color="#38BDF8" />
-            </View>
-          </TouchableOpacity>
-
-          {/* Chat History */}
+          {/* New Chat Button */}
           <TouchableOpacity
             activeOpacity={0.7}
-            onPress={() => handleChatAction(true)}
-            className="flex-row items-center px-4 py-3 rounded-xl"
+            onPress={() => handleChatAction()} 
+            className="flex-row items-center px-4 py-3 rounded-xl mb-2"
           >
-            <History size={16} color="#94A3B8" />
-            <Text className="ml-3 text-[13px] font-bold tracking-wide text-slate-300">
-              Chat History
+            <Plus size={20} color="#E2E8F0" />
+            <Text className="ml-4 text-[14px] font-medium text-slate-200 tracking-wide">
+              New chat
             </Text>
           </TouchableOpacity>
+
+          {/* Recent Header */}
+          <View className="flex-row items-center justify-between px-4 mt-2 mb-2">
+            <Text className="text-slate-400 text-[11px] font-medium tracking-wide">Recent</Text>
+          </View>
+
+          {/* History List */}
+          {loadingHistory ? (
+            <ActivityIndicator size="small" color="#38BDF8" style={{ marginTop: 10 }} />
+          ) : (
+            <>
+              {sessions.slice(0, visibleCount).map((session) => (
+                <TouchableOpacity
+                  key={session.session_id}
+                  activeOpacity={0.7}
+                  onPress={() => handleChatAction(session.session_id)}
+                  className="flex-row items-center px-4 py-3 rounded-xl"
+                >
+                  <MessageSquare size={16} color="#94A3B8" />
+                  <Text className="ml-4 text-[13px] text-slate-300 flex-1" numberOfLines={1}>
+                    {session.first_message}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {sessions.length > visibleCount && (
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setVisibleCount((prev) => prev + 5)}
+                  className="flex-row items-center px-4 py-3 rounded-xl mt-1"
+                >
+                  <ChevronDown size={16} color="#94A3B8" />
+                  <Text className="ml-4 text-[13px] text-slate-400 font-medium">Show more</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
       </ScrollView>
 
-      {/* Bottom user card */}
       <View className="border-t border-sky-400/10 p-4">
         <TouchableOpacity
           activeOpacity={0.8}
@@ -187,24 +199,14 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
             </Text>
           </View>
 
-          {isUserExpanded ? (
-            <ChevronDown size={18} color="#94A3B8" />
-          ) : (
-            <ChevronUp size={18} color="#94A3B8" />
-          )}
+          {isUserExpanded ? <ChevronDown size={18} color="#94A3B8" /> : <ChevronUp size={18} color="#94A3B8" />}
         </TouchableOpacity>
 
         {isUserExpanded && (
           <View className="mt-3 px-2">
-            <Text className="text-slate-400 text-xs mb-3 text-center" numberOfLines={1}>
-              {user?.email}
-            </Text>
-
+            <Text className="text-slate-400 text-xs mb-3 text-center" numberOfLines={1}>{user?.email}</Text>
             <TouchableOpacity
-              onPress={async () => {
-                drawerProps.navigation?.closeDrawer?.();
-                await signOut();
-              }}
+              onPress={async () => { drawerProps.navigation?.closeDrawer?.(); await signOut(); }}
               className="flex-row items-center justify-center py-3 bg-red-500/10 border border-red-500/20 rounded-xl"
             >
               <LogOut size={14} color="#F87171" />
@@ -217,44 +219,28 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
   );
 }
 
-// ══════════════════════════════════════════════════════════════
-// MAIN LAYOUT
-// ══════════════════════════════════════════════════════════════
 export default function AppLayout() {
   const [chatOpen, setChatOpen] = useState(false);
-  const [openWithHistory, setOpenWithHistory] = useState(false);
+  const [targetSessionId, setTargetSessionId] = useState<string | undefined>();
 
-  const handleOpenChat = (withHistory: boolean) => {
-    setOpenWithHistory(withHistory);
+  const handleOpenChat = (sessionId?: string) => {
+    setTargetSessionId(sessionId);
     setChatOpen(true);
   };
 
   return (
     <View style={{ flex: 1 }}>
       <Drawer
-        drawerContent={(props) => (
-          <CustomDrawerContent drawerProps={props} onOpenChat={handleOpenChat} />
-        )}
+        drawerContent={(props) => <CustomDrawerContent drawerProps={props} onOpenChat={handleOpenChat} />}
         screenOptions={{
           headerShown: true,
-          headerStyle: {
-            backgroundColor: '#050816',
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 1,
-            borderBottomColor: 'rgba(56,189,248,0.1)',
-          },
+          headerStyle: { backgroundColor: '#050816', elevation: 0, shadowOpacity: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(56,189,248,0.1)' },
           headerTintColor: '#F8FAFC',
           headerTitle: () => (
-            <Text className="text-slate-50 text-lg font-extrabold tracking-wide">
-              Level<Text className="text-[#38BDF8]">IQ</Text>
-            </Text>
+            <Text className="text-slate-50 text-lg font-extrabold tracking-wide">Level<Text className="text-[#38BDF8]">IQ</Text></Text>
           ),
           drawerType: 'front',
-          drawerStyle: {
-            backgroundColor: '#050816',
-            width: 290,
-          },
+          drawerStyle: { backgroundColor: '#050816', width: 290 },
           overlayColor: 'rgba(5, 8, 22, 0.75)',
           sceneStyle: { backgroundColor: '#050816' },
         }}
@@ -263,26 +249,15 @@ export default function AppLayout() {
         <Drawer.Screen name="analyze" options={{ title: 'Analyze Portfolio', drawerLabel: 'Analyze Portfolio' }} />
         <Drawer.Screen name="sip-checker" options={{ title: 'Pre-SIP Check', drawerLabel: 'Pre-SIP Check' }} />
         <Drawer.Screen name="debt" options={{ title: 'Debt Check', drawerLabel: 'Debt Check' }} />
-        <Drawer.Screen
-          name="report/[token]"
-          options={{
-            drawerItemStyle: { display: 'none' },
-            headerShown: false,
-          }}
-        />
+        <Drawer.Screen name="report/[token]" options={{ drawerItemStyle: { display: 'none' }, headerShown: false }} />
       </Drawer>
 
-      {/* Floating chat button — appears on every screen */}
       <FloatingChatButton />
 
-      {/* Sidebar-triggered chat modal */}
       <InvestIQChat
         visible={chatOpen}
-        onClose={() => {
-          setChatOpen(false);
-          setOpenWithHistory(false);
-        }}
-        openWithHistory={openWithHistory}
+        onClose={() => { setChatOpen(false); setTargetSessionId(undefined); }}
+        targetSessionId={targetSessionId}
       />
     </View>
   );

@@ -1,47 +1,62 @@
 // src/components/chat/InvestIQChat.tsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Menu, Sparkles, MessageSquare, Plus } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+} from 'react-native';
+import { X, Sparkles, RefreshCw } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
-import { saveMessage, sendChatMessage, loadSessions, loadSessionMessages, getTime } from './chatApi';
-import { ChatMessage, ChatSession } from './types';
+import { saveMessage, sendChatMessage, loadSessionMessages, getTime } from './chatApi';
+import { ChatMessage } from './types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
 import ChatInput from './ChatInput';
-import ChatHistory from './ChatHistory';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   portfolioContext?: any;
-  openWithHistory?: boolean;
+  targetSessionId?: string;
 }
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
-  text: "Hi! I'm InvestIQ™ 👋\n\nHow can I help you with your portfolio today?",
+  text: "Hi! I'm InvestIQ™ 👋\n\nAsk me anything about:\n- Portfolio health score\n- Mutual fund overlap\n- Investment strategies",
 };
 
-export default function InvestIQChat({ visible, onClose, portfolioContext, openWithHistory = false }: Props) {
-  const { user } = useAuth();
+export default function InvestIQChat({
+  visible,
+  onClose,
+  portfolioContext,
+  targetSessionId,
+}: Props) {
+  const { user, userName } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [plan, setPlan] = useState<string>('free');
+  const [plan] = useState<string>('free');
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}`);
-
-  const [showHistory, setShowHistory] = useState(false);
-  const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
 
+  const userAvatar = user?.user_metadata?.avatar_url;
+  const userInitial = (userName || user?.email || 'U').charAt(0).toUpperCase();
+
   useEffect(() => {
-    if (visible && openWithHistory && user) openHistory();
-  }, [visible, openWithHistory, user]);
+    if (visible && user) {
+      if (targetSessionId) {
+        handleSelectSession(targetSessionId);
+      } else {
+        startNewChat();
+      }
+    }
+  }, [visible, targetSessionId, user]);
 
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
@@ -51,106 +66,116 @@ export default function InvestIQChat({ visible, onClose, portfolioContext, openW
     if (!input.trim() || loading || !user) return;
     const userText = input.trim();
     setInput('');
-    
-    const newMsg: ChatMessage = { role: 'user', text: userText, time: getTime() };
-    const updatedMessages = [...messages, newMsg];
-    setMessages(updatedMessages);
+
+    setMessages((prev) => [...prev, { role: 'user', text: userText, time: getTime() }]);
     setLoading(true);
 
     await saveMessage(user.id, sessionId, 'user', userText);
 
-    // Format full history for the backend
-    const apiMessages = updatedMessages
-      .filter(m => m.role === 'user' || m.role === 'assistant')
-      .map(m => ({ role: m.role, content: m.text }));
-
     try {
-      const reply = await sendChatMessage(apiMessages, plan, portfolioContext);
+      const reply = await sendChatMessage(userText, plan, portfolioContext);
       setMessages((prev) => [...prev, { role: 'assistant', text: reply, time: getTime() }]);
       await saveMessage(user.id, sessionId, 'assistant', reply);
     } catch (err: any) {
-      setMessages((prev) => [...prev, { role: 'assistant', text: `⚠️ Error: ${err.message}`, time: getTime() }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', text: `⚠️ Connection Error: ${err.message}`, time: getTime() },
+      ]);
     } finally {
       setLoading(false);
     }
-  }, [input, loading, user, sessionId, messages, plan, portfolioContext]);
+  }, [input, loading, user, sessionId, plan, portfolioContext]);
 
   const startNewChat = () => {
     setMessages([WELCOME_MESSAGE]);
-    setSessionId(`session_${Date.now()}`);
-    setViewingSessionId(null);
-    setShowHistory(false);
-  };
-
-  const openHistory = async () => {
-    if (!user) return;
-    setShowHistory(true);
-    setHistoryLoading(true);
-    const data = await loadSessions(user.id);
-    setSessions(data);
-    setHistoryLoading(false);
+    setSessionId(`session_${Date.now()}_${Math.random().toString(36).substring(7)}`);
   };
 
   const handleSelectSession = async (id: string) => {
-    setHistoryLoading(true);
+    setLoading(true);
     const msgs = await loadSessionMessages(id);
-    setMessages(msgs);
-    setViewingSessionId(id);
-    setShowHistory(false);
-    setHistoryLoading(false);
+    if (msgs.length > 0) {
+      setMessages(msgs);
+    } else {
+      setMessages([WELCOME_MESSAGE]);
+    }
+    setSessionId(id);
+    setLoading(false);
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
-      <SafeAreaView className="flex-1 bg-[#050816]">
-        {showHistory ? (
-          <ChatHistory
-            sessions={sessions}
-            loading={historyLoading}
-            activeSessionId={viewingSessionId}
-            onClose={() => setShowHistory(false)}
-            onSelectSession={handleSelectSession}
-            onNewChat={startNewChat}
-          />
-        ) : (
-          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            
-            {/* Header: ChatGPT Style (Hamburger menu on left, no X) */}
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-slate-800">
-              <View className="flex-row items-center">
-                <TouchableOpacity onPress={onClose} className="p-2 -ml-2 mr-2">
-                  <Menu size={22} color="#94A3B8" />
-                </TouchableOpacity>
-                <Text className="text-slate-50 text-[15px] font-bold">InvestIQ Chat</Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#050816' }}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-slate-800/80 bg-[#050816]">
+            <View className="flex-row items-center gap-3">
+              <View className="w-9 h-9 rounded-full bg-blue-600/20 border border-blue-500/30 items-center justify-center">
+                <Sparkles size={16} color="#38BDF8" />
               </View>
-              <View className="flex-row items-center">
-                <TouchableOpacity onPress={startNewChat} className="p-2">
-                  <Plus size={20} color="#94A3B8" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={openHistory} className="p-2 ml-2">
-                  <MessageSquare size={18} color="#94A3B8" />
-                </TouchableOpacity>
+              <View>
+                <Text className="text-slate-50 text-[15px] font-bold">InvestIQ™</Text>
+                <View className="flex-row items-center mt-0.5">
+                  <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
+                  <Text className="text-green-500 text-[10px] font-medium">Online</Text>
+                </View>
               </View>
             </View>
 
-            {/* Chat Body */}
-            <ScrollView ref={scrollRef} contentContainerStyle={{ padding: 14, paddingBottom: 20 }} keyboardShouldPersistTaps="handled">
-              {messages.map((msg, i) => (
-                <ChatBubble key={i} message={msg} />
-              ))}
-              {loading && <TypingIndicator />}
-            </ScrollView>
-
-            {/* Clean Input Area */}
-            {viewingSessionId ? (
-              <TouchableOpacity onPress={startNewChat} className="bg-slate-800 m-4 rounded-xl py-3 items-center">
-                <Text className="text-white text-[13px] font-bold">Start New Conversation</Text>
+            <View className="flex-row items-center gap-2">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={startNewChat}
+                className="p-2 rounded-full bg-slate-800/60"
+              >
+                <RefreshCw size={16} color="#94A3B8" />
               </TouchableOpacity>
-            ) : (
-              <ChatInput value={input} onChangeText={setInput} onSend={handleSend} disabled={loading} />
-            )}
-          </KeyboardAvoidingView>
-        )}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onClose}
+                className="p-2 rounded-full bg-slate-800/60"
+              >
+                <X size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Messages Feed */}
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
+            keyboardShouldPersistTaps="handled"
+            style={{ flex: 1, backgroundColor: '#050816' }}
+          >
+            {messages.map((msg, i) => (
+              <ChatBubble
+                key={i}
+                message={msg}
+                userAvatar={userAvatar}
+                userInitial={userInitial}
+              />
+            ))}
+            {loading && <TypingIndicator />}
+          </ScrollView>
+
+          {/* Floating Pill Input */}
+          <View className="bg-[#050816] pb-1">
+            <ChatInput
+              value={input}
+              onChangeText={setInput}
+              onSend={handleSend}
+              disabled={loading}
+            />
+          </View>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
   );
