@@ -36,33 +36,29 @@ export default function AnalyzeScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-slate-950"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
     >
       <ScrollView
-        contentContainerStyle={{ padding: 18, paddingBottom: 64 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* Header Section */}
-        <View className="items-center mb-6 mt-1">
-          <View className="flex-row items-center bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full mb-3">
-            <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2" />
-            <Text className="text-[11px] font-bold text-emerald-400 tracking-wider">
-              PORTFOLIO ANALYSIS
-            </Text>
-          </View>
-          <Text className="text-2xl font-black text-slate-100 text-center tracking-tight">
-            Add your portfolio
+        <View className="mb-8 mt-6">
+          <Text className="text-3xl font-bold text-white tracking-tight mb-2">
+            Add Portfolio
           </Text>
-          <Text className="text-xs text-slate-400 text-center mt-1.5 leading-5 px-3">
-            We scan for hidden overlaps, expense leakages, and generate a full X-Ray report.
+          <Text className="text-sm text-slate-400 leading-5">
+            Discover hidden overlaps, high expense ratios, and optimize your investments with a complete X-Ray scan.
           </Text>
         </View>
 
         {/* Main Card Container */}
-        <View className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl">
+        <View className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-5 mb-6">
           {/* Segmented Tab Bar */}
-          <View className="flex-row bg-slate-950/80 p-1 rounded-2xl mb-5 border border-slate-800">
+          <View className="flex-row bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800/60">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -70,14 +66,14 @@ export default function AnalyzeScreen() {
                 <TouchableOpacity
                   key={tab.id}
                   onPress={() => setActiveTab(tab.id)}
-                  activeOpacity={0.7}
-                  className={`flex-1 flex-row items-center justify-center py-2.5 rounded-xl ${
-                    isActive ? 'bg-blue-600 shadow-md' : 'bg-transparent'
+                  activeOpacity={0.8}
+                  className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+                    isActive ? 'bg-slate-800' : 'bg-transparent'
                   }`}
                 >
-                  <Icon size={14} color={isActive ? '#FFFFFF' : '#94A3B8'} />
+                  <Icon size={14} color={isActive ? '#38BDF8' : '#64748B'} />
                   <Text
-                    className={`ml-1.5 text-xs font-bold ${
+                    className={`ml-1.5 text-xs font-semibold ${
                       isActive ? 'text-white' : 'text-slate-400'
                     }`}
                   >
@@ -89,21 +85,19 @@ export default function AnalyzeScreen() {
           </View>
 
           {/* Active Tab View */}
-          {activeTab === 'pdf' && (
-            <PDFUpload userId={user.id} onComplete={handleComplete} />
-          )}
-          {activeTab === 'screenshot' && (
-            <ScreenshotUpload userId={user.id} onComplete={handleComplete} />
-          )}
-          {activeTab === 'manual' && (
-            <ManualEntryTab userId={user.id} onComplete={handleComplete} />
-          )}
+          <View className="min-h-[250px]">
+            {activeTab === 'pdf' && (
+              <PDFUpload userId={user.id} onComplete={handleComplete} />
+            )}
+            {activeTab === 'screenshot' && (
+              <ScreenshotUpload userId={user.id} onComplete={handleComplete} />
+            )}
+            {activeTab === 'manual' && (
+              <ManualEntryTab userId={user.id} onComplete={handleComplete} />
+            )}
+          </View>
         </View>
-
-        {/* Privacy Note */}
-        <Text className="text-[11px] text-slate-500 text-center mt-4 font-medium">
-          🔒 Raw files never stored · Holdings anonymized after analysis
-        </Text>
+ 
       </ScrollView>
     </KeyboardAvoidingView>
   );
