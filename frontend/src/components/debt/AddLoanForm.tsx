@@ -5,9 +5,11 @@ import { Loan, LoanType, LOAN_TYPES } from './types';
 export function AddLoanForm({
   onAdd,
   onCancel,
+  onFocusField,
 }: {
   onAdd: (loan: Loan) => void;
   onCancel: () => void;
+  onFocusField?: () => void;
 }) {
   const [type, setType] = useState<LoanType>('personal');
   const [name, setName] = useState('');
@@ -77,6 +79,7 @@ export function AddLoanForm({
       <TextInput
         value={name}
         onChangeText={setName}
+        onFocus={onFocusField}
         placeholder={`e.g. ${type === 'credit_card' ? 'HDFC Card' : 'SBI Loan'}`}
         placeholderTextColor="#64748B"
         returnKeyType="next"
@@ -89,6 +92,7 @@ export function AddLoanForm({
           ref={outRef}
           value={outstanding}
           onChangeText={setOutstanding}
+          onFocus={onFocusField}
           placeholder="Balance (₹) *"
           placeholderTextColor="#64748B"
           keyboardType="numeric"
@@ -100,6 +104,7 @@ export function AddLoanForm({
           ref={emiRef}
           value={emi}
           onChangeText={setEmi}
+          onFocus={onFocusField}
           placeholder="Monthly EMI (₹)"
           placeholderTextColor="#64748B"
           keyboardType="numeric"
@@ -114,6 +119,7 @@ export function AddLoanForm({
           ref={rateRef}
           value={rate}
           onChangeText={setRate}
+          onFocus={onFocusField}
           placeholder={`Rate % (${meta.defaultRate}%)`}
           placeholderTextColor="#64748B"
           keyboardType="numeric"
@@ -125,6 +131,7 @@ export function AddLoanForm({
           ref={tenureRef}
           value={tenure}
           onChangeText={setTenure}
+          onFocus={onFocusField}
           placeholder="Months Left"
           placeholderTextColor="#64748B"
           keyboardType="numeric"

@@ -599,48 +599,16 @@ export default function StarterIQScreen() {
                 </Text>
               </View>
 
-              {/* CTA Buttons */}
+              {/* Start Over Button */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => router.push('/(app)/analyze')}
-                className="bg-sky-500 rounded-2xl py-4 flex-row items-center justify-center mb-3"
-                style={{ gap: 8 }}
-              >
-                <Upload size={16} color="#FFFFFF" />
-                <Text className="text-white text-[14px] font-bold">
-                  Analyze My Existing Portfolio
-                </Text>
-                <ArrowRight size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => router.push('/(app)/sip-checker')}
-                className="bg-sky-500/8 border border-sky-500/20 rounded-2xl py-3.5 flex-row items-center justify-center mb-4"
-                style={{ gap: 8 }}
-              >
-                <Search size={14} color="#38BDF8" />
-                <Text className="text-sky-400 text-[13px] font-semibold">
-                  Check Overlap Before You Invest
-                </Text>
-                <ChevronRight size={14} color="#38BDF8" />
-              </TouchableOpacity>
-
-              <Text className="text-slate-600 text-[11px] text-center leading-4 px-4 mb-4">
-                To start your SIP, search for these funds on any direct MF platform of your choice.
-                Always invest through direct plans to save on commission.
-              </Text>
-
-              {/* Start over */}
-              <TouchableOpacity
-                activeOpacity={0.7}
                 onPress={startOver}
-                className="flex-row items-center justify-center py-3 mb-4"
-                style={{ gap: 6 }}
+                className="bg-sky-500 rounded-2xl py-4 flex-row items-center justify-center mb-6 shadow-md shadow-sky-500/20"
+                style={{ gap: 8 }}
               >
-                <RotateCcw size={13} color="#475569" />
-                <Text className="text-slate-500 text-[12px] underline">
-                  Start over with different answers
+                <RotateCcw size={16} color="#FFFFFF" />
+                <Text className="text-white text-[14px] font-bold">
+                  Start Over with Different Answers
                 </Text>
               </TouchableOpacity>
             </>

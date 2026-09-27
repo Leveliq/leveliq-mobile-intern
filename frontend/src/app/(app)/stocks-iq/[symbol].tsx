@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions,
+  View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, BackHandler,
 } from 'react-native';
 import { ArrowLeft, TrendingUp, TrendingDown, Info, Upload } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
+const API = process.env.EXPO_PUBLIC_API_URL ;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isSmall = SCREEN_WIDTH < 340;
 
@@ -58,6 +58,19 @@ export default function StockDetailScreen() {
   const [stock, setStock] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const handleBack = useCallback(() => {
+    router.replace('/(app)/stocks-iq' as any);
+  }, [router]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      handleBack();
+      return true;
+    };
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => sub.remove();
+  }, [handleBack]);
+
   useEffect(() => {
     if (!symbol) return;
     fetch(`${API}/api/stocks/${symbol}`)
@@ -78,7 +91,7 @@ export default function StockDetailScreen() {
     return (
       <View className="flex-1 bg-[#050816] justify-center items-center px-6">
         <Text className="text-slate-100 text-[16px] font-semibold mb-2">Stock not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <Text className="text-sky-400 text-[13px]">← Back to Stocks IQ</Text>
         </TouchableOpacity>
       </View>
@@ -110,7 +123,7 @@ export default function StockDetailScreen() {
       >
         {/* Back */}
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           className="flex-row items-center mb-5"
           style={{ gap: 6 }}
         >

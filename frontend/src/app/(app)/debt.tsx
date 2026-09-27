@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -29,6 +30,7 @@ import { DebtResults } from '../../components/debt/DebtResults';
 
 export default function DebtScreen() {
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [loans, setLoans] = useState<Loan[]>([]);
   const [monthlyIncome, setMonthlyIncome] = useState('');
@@ -37,9 +39,43 @@ export default function DebtScreen() {
   const [showResults, setShowResults] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isSaved, setIsSaved] = useState(true);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
 
   const isLoaded = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Dynamic keyboard listeners to scroll into view and return to original place when cancelled
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setKeyboardOpen(true);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOpen(false);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const handleFieldFocus = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
+  const handleOpenAddForm = () => {
+    setShowAddForm(true);
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  };
 
   // 1. Initial Load with Corruption Safety
   useEffect(() => {
@@ -121,11 +157,17 @@ export default function DebtScreen() {
     <KeyboardAvoidingView
       className="flex-1 bg-slate-950"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
+        ref={scrollRef}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: keyboardOpen ? 80 : insets.bottom + 24,
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {/* Header & Auto-Save Pill */}
         <View className="flex-row items-center justify-between mb-3">
@@ -170,6 +212,9 @@ export default function DebtScreen() {
                 <TextInput
                   value={monthlyIncome}
                   onChangeText={setMonthlyIncome}
+                  onFocus={() => {
+                    scrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
                   placeholder="75,000"
                   placeholderTextColor="#64748B"
                   keyboardType="numeric"
@@ -271,10 +316,14 @@ export default function DebtScreen() {
               })}
 
               {showAddForm ? (
-                <AddLoanForm onAdd={addLoan} onCancel={() => setShowAddForm(false)} />
+                <AddLoanForm
+                  onAdd={addLoan}
+                  onCancel={() => setShowAddForm(false)}
+                  onFocusField={handleFieldFocus}
+                />
               ) : (
                 <TouchableOpacity
-                  onPress={() => setShowAddForm(true)}
+                  onPress={handleOpenAddForm}
                   className="flex-row items-center justify-center h-11 rounded-xl border border-dashed border-sky-500/50 bg-sky-500/5 mt-1"
                 >
                   <Plus size={15} color="#38BDF8" />

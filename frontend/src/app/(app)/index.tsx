@@ -174,23 +174,53 @@ export default function DashboardScreen() {
 
         {/* Score Trend Mini Bar Chart */}
         {reports.length >= 2 && (
-          <View className="bg-[#0f172a] rounded-[20px] p-5 border border-sky-400/15 mb-6">
-            <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px] mb-4">SCORE TREND (LAST 8)</Text>
-            <View className="flex-row items-end justify-between h-20 gap-2">
+          <View className="bg-[#0f172a] rounded-[24px] p-5 border border-sky-400/15 mb-6">
+            <View className="flex-row items-center justify-between mb-5">
+              <Text className="text-slate-400 text-[10px] font-bold tracking-[1.5px]">
+                SCORE TREND (LAST {Math.min(reports.length, 8)})
+              </Text>
+              <Text className="text-slate-500 text-[10px] font-semibold">
+                Score / 100
+              </Text>
+            </View>
+
+            <View className="flex-row items-end justify-between" style={{ gap: 8 }}>
               {reports.slice(0, 8).reverse().map((r, i, arr) => {
-                const height = Math.max(((r.health_score || 0) / 100) * 64, 12);
+                const score = r.health_score || 0;
+                const barHeight = Math.max((score / 100) * 72, 14);
                 const color = gc(r.grade);
                 const isLatest = i === arr.length - 1;
+                const d = new Date(r.created_at);
+                const day = d.getDate();
+                const month = d.toLocaleDateString('en-IN', { month: 'short' });
+
                 return (
-                  <View key={r.id || i} className="flex-1 items-center justify-end h-full">
-                    <Text className="text-[9px] text-slate-400 font-semibold mb-1">{r.health_score}</Text>
-                    <View
-                      style={{ height, backgroundColor: color }}
-                      className={`w-full rounded-t-[4px] ${isLatest ? 'opacity-100' : 'opacity-50'}`}
-                    />
-                    <Text className="text-[8px] text-slate-500 mt-1">
-                      {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+                  <View key={r.id || i} className="flex-1 items-center">
+                    {/* Score value above bar */}
+                    <Text
+                      className="text-[10px] font-bold mb-1.5"
+                      style={{ color: isLatest ? color : '#94A3B8' }}
+                    >
+                      {score}
                     </Text>
+
+                    {/* Bar track and filled bar */}
+                    <View className="w-full h-[76px] justify-end items-center bg-slate-800/35 rounded-t-md overflow-hidden">
+                      <View
+                        style={{ height: barHeight, backgroundColor: color }}
+                        className={`w-full rounded-t-md ${isLatest ? 'opacity-100' : 'opacity-65'}`}
+                      />
+                    </View>
+
+                    {/* Date label */}
+                    <View className="items-center mt-2.5">
+                      <Text className={`text-[10px] ${isLatest ? 'text-slate-200 font-bold' : 'text-slate-400 font-medium'}`}>
+                        {day}
+                      </Text>
+                      <Text className="text-[8px] text-slate-500 uppercase tracking-tight">
+                        {month}
+                      </Text>
+                    </View>
                   </View>
                 );
               })}

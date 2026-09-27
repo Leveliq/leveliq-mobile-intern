@@ -229,6 +229,7 @@ export default function AppLayout() {
     <View style={{ flex: 1 }}>
       <Drawer
         drawerContent={(props) => <CustomDrawerContent drawerProps={props} onOpenChat={handleOpenChat} />}
+        backBehavior="history"
         screenOptions={{
           headerShown: true,
           headerStyle: { backgroundColor: '#050816', elevation: 0, shadowOpacity: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(56,189,248,0.1)' },
