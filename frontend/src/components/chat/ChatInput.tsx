@@ -39,6 +39,7 @@ export default function ChatInput({
           placeholderTextColor="#64748B"
           onSubmitEditing={onSend}
           returnKeyType="send"
+          enablesReturnKeyAutomatically={true}
           multiline={false}
           className="flex-1 text-slate-100 text-[13.5px] px-2 py-2"
         />
