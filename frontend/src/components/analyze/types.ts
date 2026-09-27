@@ -51,4 +51,4 @@ export interface SearchFundItem {
 }
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
+  process.env.EXPO_PUBLIC_API_URL ;
