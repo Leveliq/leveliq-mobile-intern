@@ -1,45 +1,146 @@
 // src/app/(app)/debt.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  KeyboardAvoidingView, Platform, Alert,
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  AlertCircle, AlertTriangle, TrendingDown, CheckCircle2, XCircle, Plus, Trash2,
-  CreditCard, Home, Car, Briefcase, GraduationCap, ArrowRight, Info, Zap,
+  TrendingDown,
+  CheckCircle2,
+  XCircle,
+  Plus,
+  Trash2,
+  CreditCard,
+  Home,
+  Car,
+  Briefcase,
+  GraduationCap,
+  ArrowRight,
+  ChevronRight,
+  ShieldCheck,
 } from 'lucide-react-native';
 
 // ══════════════════════════════════════════════════════════════
-// Theme — same tokens as AuthScreen / analyze / sip-checker
+// Reusable UI Components (Tailwind / NativeWind)
 // ══════════════════════════════════════════════════════════════
-const COLORS = {
-  bg: '#050816', card: 'rgba(15,23,42,0.88)', cardBorder: 'rgba(56,189,248,0.15)',
-  input: '#0A0F1E', inputBorder: 'rgba(148,163,184,0.15)',
-  accent: '#38BDF8', primary: '#2563EB',
-  textPrimary: '#F8FAFC', textMuted: '#94A3B8', textFaint: '#475569',
-  green: '#22C55E', amber: '#F59E0B', red: '#EF4444', orange: '#F97316',
-};
 
-const cardStyle = {
-  backgroundColor: COLORS.card, borderColor: COLORS.cardBorder, borderWidth: 1,
-  borderRadius: 18, padding: 16, marginBottom: 14,
-};
+interface InputProps {
+  label?: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  prefix?: string;
+  keyboardType?: 'default' | 'numeric';
+  maxLength?: number;
+}
 
-const primaryButtonStyle = {
-  backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14,
-  alignItems: 'center' as const, justifyContent: 'center' as const, flexDirection: 'row' as const,
-  shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4,
-};
+export function Input({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  prefix,
+  keyboardType = 'default',
+  maxLength,
+}: InputProps) {
+  return (
+    <View className="w-full">
+      {label && <Text className="text-xs font-semibold text-slate-400 mb-1.5">{label}</Text>}
+      <View className="flex-row items-center bg-slate-800/80 border border-slate-700/80 rounded-xl px-3.5 h-12 focus:border-sky-500">
+        {prefix && <Text className="text-slate-400 text-sm font-semibold mr-2">{prefix}</Text>}
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#64748B"
+          keyboardType={keyboardType}
+          maxLength={maxLength}
+          className="flex-1 text-slate-100 text-sm font-medium h-full"
+        />
+      </View>
+    </View>
+  );
+}
 
-const inputBase = {
-  backgroundColor: COLORS.input, color: COLORS.textPrimary, borderRadius: 10,
-  paddingHorizontal: 12, paddingVertical: 10, fontSize: 13, borderWidth: 1,
-};
+interface StepCardProps {
+  step: number;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}
+
+export function StepCard({ step, title, subtitle, children }: StepCardProps) {
+  return (
+    <View className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4 shadow-sm">
+      <View className="flex-row items-center mb-1">
+        <View className="bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md mr-2.5">
+          <Text className="text-[10px] font-extrabold text-sky-400 tracking-wider">STEP {step}</Text>
+        </View>
+        <Text className="text-base font-bold text-slate-100 flex-1">{title}</Text>
+      </View>
+      <Text className="text-xs text-slate-400 mb-3.5 leading-4">{subtitle}</Text>
+      {children}
+    </View>
+  );
+}
+
+interface OptionCardProps {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  icon: React.ElementType;
+  variant?: 'success' | 'danger' | 'sky';
+}
+
+export function OptionCard({ label, selected, onPress, icon: Icon, variant = 'sky' }: OptionCardProps) {
+  const activeStyles = {
+    sky: 'bg-sky-500/10 border-sky-500 text-sky-400',
+    success: 'bg-emerald-500/10 border-emerald-500 text-emerald-400',
+    danger: 'bg-rose-500/10 border-rose-500 text-rose-400',
+  }[variant];
+
+  const iconColors = {
+    sky: '#38BDF8',
+    success: '#10B981',
+    danger: '#F43F5E',
+  }[variant];
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.7}
+      className={`flex-1 flex-row items-center justify-center h-12 rounded-xl border px-3 bg-slate-800/60 border-slate-700/80 ${
+        selected ? activeStyles : ''
+      }`}
+    >
+      <Icon size={16} color={selected ? iconColors : '#94A3B8'} />
+      <Text className={`text-xs font-semibold ml-2 ${selected ? 'font-bold' : 'text-slate-400'}`}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+export function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-1 bg-slate-800/50 rounded-xl p-3 items-center border border-slate-700/50">
+      <Text className="text-sm font-bold text-slate-100" numberOfLines={1}>{value}</Text>
+      <Text className="text-[10px] font-medium text-slate-400 mt-0.5">{label}</Text>
+    </View>
+  );
+}
 
 // ══════════════════════════════════════════════════════════════
-// Types & Constants
+// Types & Helpers
 // ══════════════════════════════════════════════════════════════
 type LoanType = 'credit_card' | 'personal' | 'home' | 'car' | 'education' | 'other';
 
@@ -50,23 +151,18 @@ interface Loan {
   outstanding: number;
   emi: number;
   rate: number;
-  tenure_remaining: number; // months
+  tenure_remaining: number;
 }
 
 const LOAN_TYPES: { value: LoanType; label: string; icon: any; color: string }[] = [
-  { value: 'credit_card', label: 'Credit Card', icon: CreditCard, color: COLORS.red },
-  { value: 'personal', label: 'Personal Loan', icon: Briefcase, color: COLORS.orange },
-  { value: 'home', label: 'Home Loan', icon: Home, color: COLORS.green },
-  { value: 'car', label: 'Car Loan', icon: Car, color: COLORS.amber },
-  { value: 'education', label: 'Education', icon: GraduationCap, color: COLORS.accent },
-  { value: 'other', label: 'Other', icon: Briefcase, color: COLORS.textMuted },
+  { value: 'credit_card', label: 'Credit Card', icon: CreditCard, color: '#F43F5E' },
+  { value: 'personal', label: 'Personal Loan', icon: Briefcase, color: '#F59E0B' },
+  { value: 'home', label: 'Home Loan', icon: Home, color: '#10B981' },
+  { value: 'car', label: 'Car Loan', icon: Car, color: '#38BDF8' },
+  { value: 'education', label: 'Education', icon: GraduationCap, color: '#8B5CF6' },
+  { value: 'other', label: 'Other Debt', icon: Briefcase, color: '#94A3B8' },
 ];
 
-const PRIORITY_COLORS = [COLORS.red, COLORS.orange, COLORS.amber, COLORS.green];
-
-// ══════════════════════════════════════════════════════════════
-// Logic
-// ══════════════════════════════════════════════════════════════
 function calcDebtScore(loans: Loan[]): number {
   if (!loans.length) return 100;
   const totalDebt = loans.reduce((s, l) => s + l.outstanding, 0);
@@ -98,10 +194,9 @@ function buildPriorities(loans: Loan[], hasEmergencyFund: boolean, monthlyIncome
     const ccTotal = ccLoans.reduce((s, l) => s + l.outstanding, 0);
     priorities.push({
       priority: 1,
-      title: 'Clear credit card debt immediately',
-      desc: `₹${ccTotal.toLocaleString('en-IN')} at 36-42%/yr. This is the most expensive money — clear it before investing further.`,
-      impact: 'High',
-      action: 'Pay minimums elsewhere, put every spare rupee here first',
+      title: 'Clear Credit Card Debt First',
+      desc: `₹${ccTotal.toLocaleString('en-IN')} outstanding at 36–42%/yr. Pay minimums elsewhere and clear this first.`,
+      impact: 'High Impact',
     });
   }
 
@@ -109,41 +204,29 @@ function buildPriorities(loans: Loan[], hasEmergencyFund: boolean, monthlyIncome
   if (highLoans.length > 0) {
     priorities.push({
       priority: ccLoans.length > 0 ? 2 : 1,
-      title: 'Prepay high-interest loans',
-      desc: 'Loans above 18%/yr cost more than markets can reliably return.',
-      impact: 'High',
-      action: 'Prioritize prepayment over increasing SIP amounts',
+      title: 'Prepay High-Interest Personal Loans',
+      desc: 'Loans above 18%/yr interest take precedence over standard investment growth.',
+      impact: 'High Impact',
     });
   }
 
   if (!hasEmergencyFund) {
     priorities.push({
       priority: priorities.length + 1,
-      title: 'Build an emergency fund first',
-      desc: `Keep 3-6 months of expenses (₹${monthlyIncome > 0 ? (monthlyIncome * 4).toLocaleString('en-IN') : '1,50,000'}) in liquid funds before investing.`,
-      impact: 'High',
-      action: 'Open a liquid fund or sweep-in FD for the corpus',
+      title: 'Build Emergency Reserve Buffer',
+      desc: `Save 3-6 months of expenses (₹${
+        monthlyIncome > 0 ? (monthlyIncome * 4).toLocaleString('en-IN') : '1,50,000'
+      }) in a liquid account before expanding investments.`,
+      impact: 'Critical Step',
     });
   }
 
   if (emiRatio > 50 && monthlyIncome > 0) {
     priorities.push({
       priority: priorities.length + 1,
-      title: 'Reduce EMI burden',
-      desc: `EMIs are ${emiRatio.toFixed(0)}% of income — above the recommended 40% limit, leaving little room to invest.`,
-      impact: 'Medium',
-      action: 'Avoid new loans until the EMI ratio drops below 40%',
-    });
-  }
-
-  const lowDebt = loans.every((l) => l.rate <= 12);
-  if (lowDebt && hasEmergencyFund && emiRatio < 40) {
-    priorities.push({
-      priority: priorities.length + 1,
-      title: 'Debt is manageable — focus on investing',
-      desc: 'Low-interest loans (home/car at 8-12%) are fine to continue alongside SIP investments.',
-      impact: 'Positive',
-      action: 'Continue existing loans, increase SIP by ₹5,000-10,000/month',
+      title: 'Reduce EMI-to-Income Burden',
+      desc: `Your EMIs consume ${emiRatio.toFixed(0)}% of earnings (recommended maximum: 40%).`,
+      impact: 'Medium Impact',
     });
   }
 
@@ -151,220 +234,34 @@ function buildPriorities(loans: Loan[], hasEmergencyFund: boolean, monthlyIncome
 }
 
 const formatMoney = (n: number) => {
-  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
-  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)} Lakh`;
   return `₹${n.toLocaleString('en-IN')}`;
 };
 
-const impactColor = (impact: string) =>
-  impact === 'High' ? COLORS.red : impact === 'Positive' ? COLORS.green : COLORS.amber;
-
 // ══════════════════════════════════════════════════════════════
-// Small reusable pieces
-// ══════════════════════════════════════════════════════════════
-function Field({
-  label, value, onChangeText, placeholder, error, width, prefix,
-}: { label: string; value: string; onChangeText: (t: string) => void; placeholder: string; error?: boolean; width?: number; prefix?: string }) {
-  return (
-    <View style={{ flex: width ? undefined : 1, width }}>
-      <Text style={{ color: COLORS.textFaint, fontSize: 10, marginBottom: 5 }}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {prefix ? <Text style={{ color: COLORS.textFaint, fontSize: 13, marginRight: 4 }}>{prefix}</Text> : null}
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType="numeric"
-          placeholder={placeholder}
-          placeholderTextColor={COLORS.textFaint}
-          style={[inputBase, { flex: 1, borderColor: error ? COLORS.red : COLORS.inputBorder }]}
-        />
-      </View>
-    </View>
-  );
-}
-
-function StatPill({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 12, paddingVertical: 10, alignItems: 'center' }}>
-      <Text style={{ color, fontSize: 15, fontWeight: '800' }}>{value}</Text>
-      <Text style={{ color: COLORS.textFaint, fontSize: 10, marginTop: 3 }}>{label}</Text>
-    </View>
-  );
-}
-
-function ToggleOption({
-  active, activeColor, activeBg, Icon, label, onPress,
-}: { active: boolean; activeColor: string; activeBg: string; Icon: any; label: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-        paddingVertical: 11, borderRadius: 10, borderWidth: 1,
-        backgroundColor: active ? activeBg : COLORS.input,
-        borderColor: active ? activeColor : COLORS.inputBorder,
-      }}
-    >
-      <Icon size={14} color={active ? activeColor : COLORS.textMuted} />
-      <Text style={{ fontSize: 13, fontWeight: '600', color: active ? activeColor : COLORS.textMuted }}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-function EmiRatioBadge({ ratio }: { ratio: number }) {
-  const [color, Icon, label] = ratio > 50 ? [COLORS.red, AlertTriangle, 'High'] : ratio > 40 ? [COLORS.amber, Zap, 'Watch'] : [COLORS.green, CheckCircle2, 'Healthy'] as const;
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-      <View style={{ flex: 1, height: 5, backgroundColor: 'rgba(148,163,184,0.15)', borderRadius: 3, overflow: 'hidden' }}>
-        <View style={{ height: '100%', width: `${Math.min(ratio, 100)}%`, borderRadius: 3, backgroundColor: color }} />
-      </View>
-      <Icon size={12} color={color} />
-      <Text style={{ fontSize: 11, fontWeight: '700', color }}>{ratio}% · {label}</Text>
-    </View>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// Debt entry
-// ══════════════════════════════════════════════════════════════
-function DebtEntry({ loans, onChange }: { loans: Loan[]; onChange: (l: Loan[]) => void }) {
-  const [showForm, setShowForm] = useState(false);
-  const [type, setType] = useState<LoanType>('personal');
-  const [name, setName] = useState('');
-  const [outstanding, setOutstanding] = useState('');
-  const [emi, setEmi] = useState('');
-  const [rate, setRate] = useState('');
-  const [tenure, setTenure] = useState('');
-
-  const resetForm = () => {
-    setName(''); setOutstanding(''); setEmi(''); setRate(''); setTenure('');
-    setType('personal'); setShowForm(false);
-  };
-
-  const addLoan = () => {
-    const outstandingNum = parseFloat(outstanding.replace(/[₹,]/g, ''));
-    const emiNum = parseFloat(emi.replace(/[₹,]/g, ''));
-    const rateNum = parseFloat(rate);
-    const tenureNum = parseInt(tenure, 10);
-
-    const missing: string[] = [];
-    if (!outstanding || isNaN(outstandingNum) || outstandingNum <= 0) missing.push('outstanding amount');
-    if (!emi || isNaN(emiNum) || emiNum <= 0) missing.push('monthly EMI');
-    if (!rate || isNaN(rateNum) || rateNum < 0) missing.push('interest rate');
-    if (!tenure || isNaN(tenureNum) || tenureNum <= 0) missing.push('remaining tenure');
-
-    if (missing.length) {
-      Alert.alert('Check your entries', `Please enter a valid ${missing.join(', ')}.`);
-      return;
-    }
-
-    onChange([...loans, {
-      id: Date.now().toString(),
-      type,
-      name: name.trim() || LOAN_TYPES.find((t) => t.value === type)?.label || 'Loan',
-      outstanding: outstandingNum, emi: emiNum, rate: rateNum, tenure_remaining: tenureNum,
-    }]);
-    resetForm();
-  };
-
-  return (
-    <View>
-      {loans.length > 0 && (
-        <View style={{ marginBottom: 12 }}>
-          {loans.map((l) => {
-            const meta = LOAN_TYPES.find((t) => t.value === l.type)!;
-            const Icon = meta.icon;
-            return (
-              <View key={l.id} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.input, borderColor: COLORS.inputBorder, borderWidth: 1, borderRadius: 12, padding: 12, marginBottom: 8 }}>
-                <View style={{ width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12, backgroundColor: `${meta.color}18`, borderWidth: 1, borderColor: `${meta.color}40` }}>
-                  <Icon size={16} color={meta.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{l.name}</Text>
-                  <Text style={{ color: COLORS.textFaint, fontSize: 11, marginTop: 2 }}>
-                    {formatMoney(l.outstanding)} · EMI ₹{l.emi.toLocaleString('en-IN')} · {l.rate}%
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => onChange(loans.filter((x) => x.id !== l.id))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Trash2 size={14} color={COLORS.red} />
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {showForm ? (
-        <View style={{ backgroundColor: COLORS.input, borderColor: 'rgba(56,189,248,0.2)', borderWidth: 1, borderRadius: 14, padding: 14 }}>
-          <Text style={{ color: COLORS.textFaint, fontSize: 10, fontWeight: '700', letterSpacing: 0.4, marginBottom: 8 }}>LOAN TYPE</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
-            {LOAN_TYPES.map((t) => {
-              const Icon = t.icon;
-              const active = type === t.value;
-              return (
-                <TouchableOpacity
-                  key={t.value}
-                  onPress={() => setType(t.value)}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginRight: 8, borderWidth: 1, backgroundColor: active ? 'rgba(56,189,248,0.15)' : 'rgba(148,163,184,0.06)', borderColor: active ? 'rgba(56,189,248,0.5)' : COLORS.inputBorder }}
-                >
-                  <Icon size={13} color={active ? COLORS.accent : COLORS.textMuted} />
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: active ? COLORS.accent : COLORS.textMuted }}>{t.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Loan name (e.g. HDFC Personal Loan)"
-            placeholderTextColor={COLORS.textFaint}
-            style={[inputBase, { borderColor: COLORS.inputBorder, backgroundColor: COLORS.bg, marginBottom: 10 }]}
-          />
-
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-            <Field label="OUTSTANDING ₹" value={outstanding} onChangeText={setOutstanding} placeholder="500000" />
-            <Field label="MONTHLY EMI ₹" value={emi} onChangeText={setEmi} placeholder="12000" />
-          </View>
-          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
-            <Field label="INTEREST %" value={rate} onChangeText={setRate} placeholder="12.5" />
-            <Field label="MONTHS LEFT" value={tenure} onChangeText={setTenure} placeholder="36" />
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TouchableOpacity onPress={resetForm} style={{ flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(148,163,184,0.2)' }}>
-              <Text style={{ color: COLORS.textMuted, fontSize: 12, fontWeight: '700' }}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={addLoan} style={{ flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.primary }}>
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Add Loan</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <TouchableOpacity
-          onPress={() => setShowForm(true)}
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(56,189,248,0.3)', borderRadius: 14, paddingVertical: 14, backgroundColor: 'rgba(56,189,248,0.05)' }}
-        >
-          <Plus size={16} color={COLORS.accent} />
-          <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '700' }}>Add a loan</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// Main screen
+// Main Screen Component
 // ══════════════════════════════════════════════════════════════
 export default function DebtScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
   const [loans, setLoans] = useState<Loan[]>([]);
   const [monthlyIncome, setMonthlyIncome] = useState('');
   const [hasEmergencyFund, setHasEmergencyFund] = useState<boolean | null>(null);
   const [emergencyMonths, setEmergencyMonths] = useState('');
   const [showResults, setShowResults] = useState(false);
+
+  // Form State
+  const [showLoanForm, setShowLoanForm] = useState(false);
+  const [loanType, setLoanType] = useState<LoanType>('personal');
+  const [loanName, setLoanName] = useState('');
+  const [outstanding, setOutstanding] = useState('');
+  const [emi, setEmi] = useState('');
+  const [rate, setRate] = useState('');
+  const [tenure, setTenure] = useState('');
+
   const loaded = useRef(false);
-  const incomeSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -375,15 +272,12 @@ export default function DebtScreen() {
           AsyncStorage.getItem('leveliq_has_ef'),
           AsyncStorage.getItem('leveliq_ef_months'),
         ]);
-        if (savedLoans) {
-          const parsed = JSON.parse(savedLoans);
-          if (Array.isArray(parsed)) setLoans(parsed);
-        }
+        if (savedLoans) setLoans(JSON.parse(savedLoans));
         if (savedIncome) setMonthlyIncome(savedIncome);
         if (savedEF !== null) setHasEmergencyFund(savedEF === 'true');
         if (savedEFMonths) setEmergencyMonths(savedEFMonths);
       } catch {
-        // ignore corrupted/missing storage — screen just starts empty
+        // Fallback gracefully
       } finally {
         loaded.current = true;
       }
@@ -397,11 +291,7 @@ export default function DebtScreen() {
 
   useEffect(() => {
     if (!loaded.current) return;
-    if (incomeSaveTimer.current) clearTimeout(incomeSaveTimer.current);
-    incomeSaveTimer.current = setTimeout(() => {
-      AsyncStorage.setItem('leveliq_income', monthlyIncome).catch(() => {});
-    }, 400);
-    return () => { if (incomeSaveTimer.current) clearTimeout(incomeSaveTimer.current); };
+    AsyncStorage.setItem('leveliq_income', monthlyIncome).catch(() => {});
   }, [monthlyIncome]);
 
   useEffect(() => {
@@ -409,185 +299,364 @@ export default function DebtScreen() {
     AsyncStorage.setItem('leveliq_has_ef', String(hasEmergencyFund)).catch(() => {});
   }, [hasEmergencyFund]);
 
-  useEffect(() => {
-    if (!loaded.current) return;
-    AsyncStorage.setItem('leveliq_ef_months', emergencyMonths).catch(() => {});
-  }, [emergencyMonths]);
+  const addLoan = () => {
+    const outstandingNum = parseFloat(outstanding.replace(/[₹,]/g, ''));
+    const emiNum = parseFloat(emi.replace(/[₹,]/g, ''));
+    const rateNum = parseFloat(rate);
+    const tenureNum = parseInt(tenure, 10);
+
+    if (!outstanding || isNaN(outstandingNum) || outstandingNum <= 0) {
+      Alert.alert('Invalid Input', 'Please enter a valid loan balance.');
+      return;
+    }
+
+    const newLoan: Loan = {
+      id: Date.now().toString(),
+      type: loanType,
+      name: loanName.trim() || LOAN_TYPES.find((t) => t.value === loanType)?.label || 'Loan',
+      outstanding: outstandingNum,
+      emi: emiNum || 0,
+      rate: rateNum || 0,
+      tenure_remaining: tenureNum || 0,
+    };
+
+    setLoans([...loans, newLoan]);
+    setLoanName('');
+    setOutstanding('');
+    setEmi('');
+    setRate('');
+    setTenure('');
+    setShowLoanForm(false);
+  };
+
+  const removeLoan = (id: string) => {
+    setLoans(loans.filter((l) => l.id !== id));
+  };
 
   const incomeNum = parseFloat(monthlyIncome) || 0;
   const debtScore = calcDebtScore(loans);
-  const priorities = showResults ? buildPriorities(loans, hasEmergencyFund ?? false, incomeNum) : [];
   const totalDebt = loans.reduce((s, l) => s + l.outstanding, 0);
   const totalEMI = loans.reduce((s, l) => s + l.emi, 0);
-  const totalInterest = loans.reduce((s, l) => s + l.outstanding * (l.rate / 100 / 12) * l.tenure_remaining, 0);
   const emiRatio = incomeNum > 0 ? Math.round((totalEMI / incomeNum) * 100) : 0;
-  const scoreColor = debtScore >= 75 ? COLORS.green : debtScore >= 55 ? COLORS.amber : COLORS.red;
-  const scoreGrade = debtScore >= 80 ? 'A' : debtScore >= 65 ? 'B' : debtScore >= 50 ? 'C' : 'D';
-  const emergencyMonthsNum = parseInt(emergencyMonths, 10);
-  const canAnalyze = loans.length > 0 || hasEmergencyFund !== null;
+  const priorities = buildPriorities(loans, hasEmergencyFund ?? false, incomeNum);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={{ alignItems: 'center', marginBottom: 20 }}>
-          <View style={{ backgroundColor: 'rgba(56,189,248,0.1)', borderColor: 'rgba(56,189,248,0.3)', borderWidth: 1, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, marginBottom: 12 }}>
-            <Text style={{ color: COLORS.accent, fontSize: 11, fontWeight: '700' }}>DEBT HEALTH CHECK</Text>
-          </View>
-          <Text style={{ color: COLORS.textPrimary, fontSize: 25, fontWeight: '800', textAlign: 'center', letterSpacing: -0.4, marginBottom: 8 }}>Know your debt first</Text>
-          <Text style={{ color: COLORS.textMuted, fontSize: 13, textAlign: 'center', paddingHorizontal: 8, lineHeight: 19 }}>
-            Understand your debt before you grow your investments.
+    <KeyboardAvoidingView
+      className="flex-1 bg-slate-950"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Page Title & Subtitle */}
+        <View className="mb-4">
+          <Text className="text-2xl font-black text-slate-100 tracking-tight">Debt Health Check</Text>
+          <Text className="text-xs text-slate-400 mt-1 leading-5">
+            Understand your liabilities and emergency buffers before accelerating portfolio investments.
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.16)', borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 16 }}>
-          <AlertCircle size={15} color={COLORS.red} style={{ marginTop: 1 }} />
-          <Text style={{ color: '#FCA5A5', fontSize: 12.5, lineHeight: 18, marginLeft: 10, flex: 1 }}>
-            <Text style={{ fontWeight: '700' }}>Why debt first? </Text>
-            A personal loan at 18%/yr costs more than most fund returns. Clearing high-interest debt often beats investing.
-          </Text>
-        </View>
-
-        {/* Income */}
-        <View style={cardStyle}>
-          <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700', marginBottom: 2 }}>Your monthly income</Text>
-          <Text style={{ color: COLORS.textFaint, fontSize: 12, marginBottom: 12 }}>Helps calculate your EMI-to-income ratio (optional)</Text>
-          <TextInput
-            value={monthlyIncome}
-            onChangeText={setMonthlyIncome}
-            keyboardType="numeric"
-            placeholder="75000"
-            placeholderTextColor={COLORS.textFaint}
-            style={[inputBase, { borderColor: COLORS.inputBorder }]}
-          />
-          {incomeNum > 0 && totalEMI > 0 && <EmiRatioBadge ratio={emiRatio} />}
-        </View>
-
-        {/* Emergency fund */}
-        <View style={cardStyle}>
-          <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700', marginBottom: 2 }}>Do you have an emergency fund?</Text>
-          <Text style={{ color: COLORS.textFaint, fontSize: 12, marginBottom: 12 }}>3-6 months of expenses in liquid savings</Text>
-
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <ToggleOption active={hasEmergencyFund === true} activeColor={COLORS.green} activeBg="rgba(34,197,94,0.1)" Icon={CheckCircle2} label="Yes, I have one" onPress={() => setHasEmergencyFund(true)} />
-            <ToggleOption active={hasEmergencyFund === false} activeColor={COLORS.red} activeBg="rgba(239,68,68,0.1)" Icon={XCircle} label="Not yet" onPress={() => setHasEmergencyFund(false)} />
+        {/* Financial Insight Callout */}
+        <View className="flex-row bg-slate-900 border border-slate-800 rounded-2xl p-3.5 mb-4 items-start">
+          <ShieldCheck size={18} color="#38BDF8" className="mt-0.5" />
+          <View className="flex-1 ml-3">
+            <Text className="text-xs font-bold text-slate-200">Rule of Thumb</Text>
+            <Text className="text-[11px] text-slate-400 mt-0.5 leading-4">
+              Clearing high-interest debt provides a guaranteed return equal to the interest saved.
+            </Text>
           </View>
-
-          {hasEmergencyFund === true && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
-              <TextInput
-                value={emergencyMonths}
-                onChangeText={setEmergencyMonths}
-                keyboardType="numeric"
-                placeholder="3"
-                placeholderTextColor={COLORS.textFaint}
-                maxLength={2}
-                style={[inputBase, { width: 60, textAlign: 'center', borderColor: COLORS.inputBorder }]}
-              />
-              <Text style={{ color: COLORS.textFaint, fontSize: 12, flex: 1 }}>months of expenses covered</Text>
-              {emergencyMonthsNum >= 3 && <CheckCircle2 size={15} color={COLORS.green} />}
-              {emergencyMonthsNum > 0 && emergencyMonthsNum < 3 && <AlertTriangle size={15} color={COLORS.amber} />}
-            </View>
-          )}
-
-          {hasEmergencyFund === false && (
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-              <Info size={13} color={COLORS.amber} style={{ marginTop: 1 }} />
-              <Text style={{ color: COLORS.amber, fontSize: 12, flex: 1, lineHeight: 17 }}>
-                Build a 3-6 month liquid fund before increasing investments.
-              </Text>
-            </View>
-          )}
         </View>
 
-        {/* Loans */}
-        <View style={cardStyle}>
-          <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700', marginBottom: 2 }}>Your loans & debts</Text>
-          <Text style={{ color: COLORS.textFaint, fontSize: 12, marginBottom: 12 }}>Add all active loans for a complete picture</Text>
-          <DebtEntry loans={loans} onChange={setLoans} />
-        </View>
-
-        {canAnalyze && !showResults && (
-          <TouchableOpacity onPress={() => setShowResults(true)} style={[primaryButtonStyle, { marginBottom: 16 }]}>
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', marginRight: 8 }}>Analyze My Debt Health</Text>
-            <ArrowRight size={16} color="#fff" />
-          </TouchableOpacity>
-        )}
-
-        {showResults && (
+        {!showResults ? (
           <>
-            {/* Score hero */}
-            <View style={{ backgroundColor: COLORS.card, borderColor: 'rgba(56,189,248,0.2)', borderWidth: 1, borderRadius: 22, padding: 22, alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ color: COLORS.textFaint, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>DEBT HEALTH SCORE</Text>
-              <Text style={{ color: scoreColor, fontSize: 64, fontWeight: '900', lineHeight: 68 }}>{debtScore}</Text>
-              <Text style={{ color: scoreColor, fontSize: 18, fontWeight: '700', marginTop: 2, marginBottom: 18 }}>Grade {scoreGrade}</Text>
+            {/* Step 1: Monthly Income */}
+            <StepCard
+              step={1}
+              title="Monthly Net Income"
+              subtitle="Calculates your total EMI-to-income capacity."
+            >
+              <Input
+                value={monthlyIncome}
+                onChangeText={setMonthlyIncome}
+                placeholder="75,000"
+                prefix="₹"
+                keyboardType="numeric"
+              />
+            </StepCard>
 
-              {totalDebt > 0 && (
-                <View style={{ flexDirection: 'row', width: '100%', gap: 8 }}>
-                  <StatPill label="Total Debt" value={formatMoney(totalDebt)} color={COLORS.red} />
-                  <StatPill label="Monthly EMI" value={`₹${totalEMI.toLocaleString('en-IN')}`} color={COLORS.amber} />
-                  <StatPill label="Total Interest" value={formatMoney(Math.round(totalInterest))} color={COLORS.orange} />
+            {/* Step 2: Emergency Savings */}
+            <StepCard
+              step={2}
+              title="Emergency Fund Status"
+              subtitle="Do you have 3 to 6 months of living expenses saved in liquid funds?"
+            >
+              <View className="flex-row gap-2.5">
+                <OptionCard
+                  label="Yes, Saved"
+                  selected={hasEmergencyFund === true}
+                  onPress={() => setHasEmergencyFund(true)}
+                  icon={CheckCircle2}
+                  variant="success"
+                />
+                <OptionCard
+                  label="Not Yet"
+                  selected={hasEmergencyFund === false}
+                  onPress={() => setHasEmergencyFund(false)}
+                  icon={XCircle}
+                  variant="danger"
+                />
+              </View>
+
+              {hasEmergencyFund === true && (
+                <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-slate-800">
+                  <Text className="text-xs text-slate-400 font-medium">Months of expenses saved:</Text>
+                  <View className="w-16">
+                    <Input
+                      value={emergencyMonths}
+                      onChangeText={setEmergencyMonths}
+                      placeholder="3"
+                      keyboardType="numeric"
+                      maxLength={2}
+                    />
+                  </View>
                 </View>
               )}
-            </View>
+            </StepCard>
 
-            {/* Priorities */}
-            <View style={cardStyle}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <TrendingDown size={16} color={COLORS.accent} />
-                <Text style={{ color: '#F1F5F9', fontSize: 14, fontWeight: '700', marginLeft: 8 }}>Your Financial Priority Order</Text>
-              </View>
-              <Text style={{ color: COLORS.textFaint, fontSize: 12, marginBottom: 14 }}>Based on your debt profile — focus on these in order:</Text>
+            {/* Step 3: Loan Portfolio Entry */}
+            <StepCard
+              step={3}
+              title="Active Loans & Borrowings"
+              subtitle="Add credit cards, personal, vehicle, or housing liabilities."
+            >
+              {/* Existing Loans */}
+              {loans.map((loan) => {
+                const meta = LOAN_TYPES.find((t) => t.value === loan.type)!;
+                const Icon = meta.icon;
+                return (
+                  <View
+                    key={loan.id}
+                    className="flex-row items-center bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 mb-2.5"
+                  >
+                    <View
+                      className="w-9 h-9 rounded-lg items-center justify-center mr-3"
+                      style={{ backgroundColor: `${meta.color}1F` }}
+                    >
+                      <Icon size={18} color={meta.color} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-slate-100">{loan.name}</Text>
+                      <Text className="text-[11px] text-slate-400 mt-0.5">
+                        {formatMoney(loan.outstanding)} • EMI ₹{loan.emi.toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => removeLoan(loan.id)}
+                      className="p-1.5"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Trash2 size={16} color="#F43F5E" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
 
-              {priorities.length === 0 ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(34,197,94,0.06)', borderColor: 'rgba(34,197,94,0.2)', borderWidth: 1, borderRadius: 12, padding: 14 }}>
-                  <CheckCircle2 size={18} color={COLORS.green} />
-                  <Text style={{ color: '#4ADE80', fontSize: 13, fontWeight: '600', marginLeft: 10, flex: 1 }}>No urgent priorities — you're in good shape.</Text>
+              {/* Dynamic Loan Creation Modal */}
+              {showLoanForm ? (
+                <View className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 mt-1">
+                  <Text className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2">
+                    Select Loan Category
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
+                    {LOAN_TYPES.map((type) => {
+                      const Icon = type.icon;
+                      const isSelected = loanType === type.value;
+                      return (
+                        <TouchableOpacity
+                          key={type.value}
+                          onPress={() => setLoanType(type.value)}
+                          className={`flex-row items-center px-3 py-1.5 rounded-lg mr-2 border ${
+                            isSelected
+                              ? 'bg-sky-500/10 border-sky-500'
+                              : 'bg-slate-900 border-slate-700/80'
+                          }`}
+                        >
+                          <Icon size={13} color={isSelected ? '#38BDF8' : '#94A3B8'} />
+                          <Text
+                            className={`text-xs ml-1.5 font-semibold ${
+                              isSelected ? 'text-sky-400' : 'text-slate-400'
+                            }`}
+                          >
+                            {type.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  <View className="mb-2">
+                    <Input
+                      label="Loan Name"
+                      value={loanName}
+                      onChangeText={setLoanName}
+                      placeholder="e.g. HDFC Personal Loan"
+                    />
+                  </View>
+
+                  <View className="flex-row gap-2 mb-2">
+                    <View className="flex-1">
+                      <Input
+                        label="Outstanding (₹)"
+                        value={outstanding}
+                        onChangeText={setOutstanding}
+                        placeholder="5,00,000"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Input
+                        label="Monthly EMI (₹)"
+                        value={emi}
+                        onChangeText={setEmi}
+                        placeholder="12,000"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <View className="flex-row gap-2 mb-3">
+                    <View className="flex-1">
+                      <Input
+                        label="Interest Rate (%)"
+                        value={rate}
+                        onChangeText={setRate}
+                        placeholder="12.5"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Input
+                        label="Months Remaining"
+                        value={tenure}
+                        onChangeText={setTenure}
+                        placeholder="36"
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity
+                      onPress={() => setShowLoanForm(false)}
+                      className="flex-1 h-10 rounded-xl border border-slate-700 items-center justify-center"
+                    >
+                      <Text className="text-xs font-semibold text-slate-400">Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={addLoan}
+                      className="flex-1 h-10 rounded-xl bg-blue-600 items-center justify-center"
+                    >
+                      <Text className="text-xs font-bold text-white">Save Entry</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
-                priorities.map((p, i) => {
-                  const idx = Math.min(p.priority - 1, 3);
-                  const ic = impactColor(p.impact);
-                  return (
-                    <View key={i} style={{ flexDirection: 'row', backgroundColor: COLORS.input, borderRadius: 12, padding: 13, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: PRIORITY_COLORS[idx] }}>
-                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: `${PRIORITY_COLORS[idx]}20`, alignItems: 'center', justifyContent: 'center', marginRight: 10, marginTop: 1 }}>
-                        <Text style={{ color: PRIORITY_COLORS[idx], fontSize: 11, fontWeight: '800' }}>{i + 1}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, gap: 8 }}>
-                          <Text style={{ color: '#F1F5F9', fontSize: 13, fontWeight: '700', flexShrink: 1 }} numberOfLines={2}>{p.title}</Text>
-                          <View style={{ backgroundColor: `${ic}1A`, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
-                            <Text style={{ color: ic, fontSize: 9, fontWeight: '800' }}>{p.impact.toUpperCase()}</Text>
-                          </View>
-                        </View>
-                        <Text style={{ color: COLORS.textFaint, fontSize: 12, lineHeight: 17, marginBottom: 6 }}>{p.desc}</Text>
-                        <Text style={{ color: COLORS.accent, fontSize: 12, fontWeight: '600' }}>{p.action}</Text>
-                      </View>
-                    </View>
-                  );
-                })
+                <TouchableOpacity
+                  onPress={() => setShowLoanForm(true)}
+                  className="flex-row items-center justify-center h-12 rounded-xl border border-dashed border-sky-500/50 bg-sky-500/5 mt-1"
+                >
+                  <Plus size={16} color="#38BDF8" />
+                  <Text className="text-xs font-bold text-sky-400 ml-2">Add Loan or Borrowing</Text>
+                </TouchableOpacity>
               )}
+            </StepCard>
 
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                <Info size={11} color={COLORS.textFaint} style={{ marginTop: 2 }} />
-                <Text style={{ color: COLORS.textFaint, fontSize: 10.5, lineHeight: 15, flex: 1 }}>
-                  Educational analysis only. Consult your financial advisor before decisions.
-                </Text>
+            {/* Run Analysis Action */}
+            <TouchableOpacity
+              onPress={() => setShowResults(true)}
+              className="flex-row items-center justify-center h-12 bg-blue-600 rounded-xl shadow-lg mt-2"
+            >
+              <Text className="text-sm font-bold text-white mr-2">Analyze Debt Health</Text>
+              <ArrowRight size={16} color="#FFF" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          /* Analysis Results View */
+          <>
+            {/* Score Metric Hero */}
+            <View className="bg-slate-900 border border-slate-800 rounded-2xl p-5 items-center mb-4">
+              <Text className="text-[10px] font-extrabold text-slate-400 tracking-wider">
+                DEBT HEALTH SCORE
+              </Text>
+              <Text
+                className={`text-5xl font-black my-2 ${
+                  debtScore >= 75
+                    ? 'text-emerald-400'
+                    : debtScore >= 50
+                    ? 'text-amber-400'
+                    : 'text-rose-500'
+                }`}
+              >
+                {debtScore}
+              </Text>
+              <Text className="text-xs font-semibold text-slate-300 mb-4">
+                {debtScore >= 80
+                  ? 'Healthy Balance'
+                  : debtScore >= 60
+                  ? 'Moderate Attention Required'
+                  : 'High Risk Profile'}
+              </Text>
+
+              {/* Stats Grid */}
+              <View className="flex-row gap-2 w-full pt-3 border-t border-slate-800">
+                <StatCard label="Total Balance" value={formatMoney(totalDebt)} />
+                <StatCard label="Monthly EMI" value={`₹${totalEMI.toLocaleString('en-IN')}`} />
+                <StatCard label="EMI Ratio" value={incomeNum > 0 ? `${emiRatio}%` : 'N/A'} />
               </View>
             </View>
 
-            {/* Next step */}
-            <View style={{ backgroundColor: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.3)', borderWidth: 1, borderRadius: 18, padding: 18 }}>
-              <Text style={{ color: '#F1F5F9', fontSize: 14, fontWeight: '700', marginBottom: 4 }}>Now check your investment portfolio</Text>
-              <Text style={{ color: COLORS.textFaint, fontSize: 12.5, marginBottom: 14 }}>Get your Portfolio Health Score alongside this debt view.</Text>
-              <TouchableOpacity onPress={() => router.push('/(app)/analyze' as any)} style={{ backgroundColor: COLORS.primary, paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700', marginRight: 8 }}>Analyze My Portfolio</Text>
-                <ArrowRight size={15} color="#fff" />
-              </TouchableOpacity>
+            {/* Recommendations */}
+            <View className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4">
+              <View className="flex-row items-center mb-1">
+                <TrendingDown size={16} color="#38BDF8" />
+                <Text className="text-sm font-bold text-slate-100 ml-2">Priority Action Steps</Text>
+              </View>
+              <Text className="text-xs text-slate-400 mb-3">
+                Focus on these prioritized tasks in order:
+              </Text>
+
+              {priorities.map((p, idx) => (
+                <View
+                  key={idx}
+                  className="bg-slate-800/50 border-l-2 border-l-sky-400 rounded-r-xl p-3 mb-2.5"
+                >
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-xs font-bold text-slate-100 flex-1 mr-2">{p.title}</Text>
+                    <View className="bg-sky-500/10 px-2 py-0.5 rounded">
+                      <Text className="text-[9px] font-extrabold text-sky-400">{p.impact}</Text>
+                    </View>
+                  </View>
+                  <Text className="text-[11px] text-slate-400 leading-4">{p.desc}</Text>
+                </View>
+              ))}
             </View>
 
-            <TouchableOpacity onPress={() => setShowResults(false)} style={{ alignItems: 'center', paddingVertical: 14, marginTop: 4 }}>
-              <Text style={{ color: COLORS.textFaint, fontSize: 12, textDecorationLine: 'underline' }}>Edit inputs</Text>
+            {/* Action Buttons */}
+            <TouchableOpacity
+              onPress={() => setShowResults(false)}
+              className="h-11 rounded-xl border border-slate-800 items-center justify-center mb-2"
+            >
+              <Text className="text-xs font-semibold text-slate-400">Edit Inputs</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/(app)/analyze' as any)}
+              className="flex-row items-center justify-center h-12 bg-blue-600 rounded-xl"
+            >
+              <Text className="text-xs font-bold text-white mr-1.5">Proceed to Portfolio Check</Text>
+              <ChevronRight size={16} color="#FFF" />
             </TouchableOpacity>
           </>
         )}
