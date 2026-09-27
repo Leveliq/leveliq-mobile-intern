@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, AlertCircle, CheckCircle2, Info, Activity, Layers, Briefcase, ShieldAlert, BarChart2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API = process.env.EXPO_PUBLIC_API_URL;
+const API = process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
 const { width } = Dimensions.get('window');
 
 const GRADE_COLOR: Record<string, string> = {
@@ -33,7 +33,8 @@ function SectionHeader({ title, icon: Icon, color }: { title: string, icon: any,
 }
 
 export default function SharedReportScreen() {
-  const { token } = useLocalSearchParams();
+  const { token } = useLocalSearchParams<{ token?: string | string[] }>();
+  const reportToken = Array.isArray(token) ? token[0] : token;
   const router = useRouter();
   
   const [report, setReport] = useState<any>(null);
@@ -41,21 +42,30 @@ export default function SharedReportScreen() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!token || token === "undefined") { 
+    if (!reportToken || reportToken === "undefined") { 
       setError("Invalid report link."); 
       setLoading(false); 
       return; 
     }
 
-    fetch(`${API}/api/report/${token}`)
-      .then(r => r.json())
+    setLoading(true);
+    setError("");
+
+    fetch(`${API}/api/report/${reportToken}`)
+      .then(r => {
+        if (!r.ok) throw new Error(`Status ${r.status}`);
+        return r.json();
+      })
       .then(d => { 
-        if (d.success) setReport(d.report); 
+        if (d.success && d.report) setReport(d.report); 
         else setError("Report not found."); 
       })
-      .catch(() => setError("Failed to load report data."))
+      .catch((err) => {
+        console.error("Failed to load report data:", err);
+        setError("Failed to load report data.");
+      })
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [reportToken]);
 
   if (loading) {
     return (
@@ -78,15 +88,17 @@ export default function SharedReportScreen() {
     );
   }
 
+  if (!report) return null;
+
   const full = report.full_report || {};
-  const score = full.health_score ?? report.health_score;
-  const grade = full.grade ?? report.grade;
+  const score = full.health_score ?? report.health_score ?? 0;
+  const grade = full.grade ?? report.grade ?? "N/A";
   const gc = GRADE_COLOR[grade] || "#94A3B8";
   
   const avgOverlap = full.avg_overlap ?? 0;
   const overlaps = full.overlaps ?? report.overlap_matrix ?? [];
   const stocks = full.stock_concentration ?? [];
-  const insights = full.insights ?? [];
+  const insights = full.insights ?? report.ai_insights ?? [];
   
   const breakdown = full.breakdown ?? {
     diversification: report.diversification_score,
@@ -107,6 +119,10 @@ export default function SharedReportScreen() {
       console.error("Error sharing", error);
     }
   };
+
+  const formattedDate = report.created_at
+    ? new Date(report.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()
+    : "RECENT";
 
   return (
     <SafeAreaView className="flex-1 bg-[#050816]" edges={['top']}>
@@ -134,7 +150,7 @@ export default function SharedReportScreen() {
           <View className="flex-row items-center">
             <View className="bg-slate-800/80 px-4 py-2 rounded-full border border-slate-700">
               <Text className="text-slate-400 text-[10px] font-bold">
-                ANALYZED ON {new Date(report.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()}
+                ANALYZED ON {formattedDate}
               </Text>
             </View>
           </View>
@@ -147,9 +163,10 @@ export default function SharedReportScreen() {
             
             <View className="gap-4">
               {insights.map((ins: any, i: number) => {
-                const IconComponent = getInsightIcon(ins.color);
+                const IconComponent = getInsightIcon(ins?.color || "");
                 // Strip emoji if backend sent one in text
-                const cleanText = ins.text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
+                const rawText = typeof ins === 'string' ? ins : (ins?.text || '');
+                const cleanText = rawText.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2700}-\u{27BF}]/gu, '').trim();
 
                 return (
                   <View key={i} className="flex-row items-start bg-[#0a0f1e]/50 p-4 rounded-2xl border border-slate-800/50">

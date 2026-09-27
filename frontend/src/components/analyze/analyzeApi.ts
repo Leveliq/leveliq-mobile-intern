@@ -15,10 +15,20 @@ export async function runAnalysis(resolved: ResolvedFund[], userId: string): Pro
     body: JSON.stringify({ holdings, user_id: userId }),
   });
 
-  if (!res.ok) throw new Error('Analysis request failed');
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    throw new Error(errorData?.detail || errorData?.error || 'Analysis request failed');
+  }
+
   const data = await res.json();
-  if (!data?.report?.share_token) throw new Error('Invalid analysis response');
-  return data.report.share_token as string;
+  const shareToken =
+    data?.share_token ||
+    data?.report?.share_token ||
+    data?.token ||
+    data?.report_id;
+
+  if (!shareToken) throw new Error('Invalid analysis response: missing share_token');
+  return shareToken as string;
 }
 
 export async function parseUploadFile(

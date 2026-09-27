@@ -7,6 +7,8 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Plus, Trash2, CheckCircle, ArrowRight } from 'lucide-react-native';
 
@@ -123,6 +125,7 @@ export function ManualEntryTab({ userId, onComplete }: ManualEntryTabProps) {
     }
 
     setLoading(true);
+    let token: string | null = null;
     try {
       const resolved: ResolvedFund[] = valid.map((h) => ({
         scheme_code: h.scheme_code,
@@ -130,129 +133,150 @@ export function ManualEntryTab({ userId, onComplete }: ManualEntryTabProps) {
         value: parseFloat(h.value.replace(/[₹,\s]/g, '')),
       }));
 
-      const token = await runAnalysis(resolved, userId);
-      onComplete(token);
-    } catch {
-      Alert.alert('Analysis Failed', 'Could not generate report. Please try again.');
+      token = await runAnalysis(resolved, userId);
+    } catch (err: any) {
+      console.error('ManualEntryTab analysis error:', err);
+      Alert.alert('Analysis Failed', err?.message || 'Could not generate report. Please try again.');
     } finally {
       setLoading(false);
+    }
+
+    if (token) {
+      onComplete(token);
     }
   };
 
   return (
-    <View>
-      <Text className="text-xs text-slate-400 mb-3.5">
-        Search for mutual funds and enter your invested amounts:
-      </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text className="text-xs text-slate-400 mb-3.5">
+          Search for mutual funds and enter your invested amounts:
+        </Text>
 
-      {holdings.map((h, i) => {
-        const error = h.touched ? validateRow(h) : null;
-        const zIndexStyle = activeIndex === i ? { zIndex: 100, elevation: 10 } : { zIndex: 1 };
+        {holdings.map((h, i) => {
+          const error = h.touched ? validateRow(h) : null;
+          const zIndexStyle = activeIndex === i ? { zIndex: 100 - i, elevation: 10 + i } : { zIndex: 1 };
 
-        return (
-          <View key={i} className="mb-3" style={zIndexStyle}>
-            <View className="flex-row items-center gap-2">
-              {/* Fund Search Field */}
-              <View className="flex-1 relative">
+          return (
+            <View key={i} className="mb-3" style={zIndexStyle}>
+              <View className="flex-row items-center gap-2">
+                {/* Fund Search Field */}
+                <View className="flex-1 relative">
+                  <TextInput
+                    value={h.name}
+                    onChangeText={(text) => {
+                      updateField(i, 'name', text);
+                      searchFunds(text, i);
+                    }}
+                    onFocus={() => {
+                      if (h.name.trim().length >= 2) {
+                        searchFunds(h.name, i);
+                      }
+                    }}
+                    placeholder="Search fund e.g. HDFC Flexi"
+                    placeholderTextColor="#64748B"
+                    className={`h-11 bg-slate-900 border rounded-xl px-3 text-xs text-slate-100 pr-8 ${
+                      error ? 'border-rose-500/80' : 'border-slate-700/80'
+                    }`}
+                  />
+                  {h.scheme_code ? (
+                    <View className="absolute right-2.5 top-3.5">
+                      <CheckCircle size={15} color="#10B981" />
+                    </View>
+                  ) : null}
+
+                  {/* Suggestions Dropdown */}
+                  {activeIndex === i && suggestions.length > 0 && (
+                    <View className="absolute top-12 left-0 right-0 bg-slate-800 border border-sky-500/60 rounded-xl max-h-48 z-50 shadow-xl overflow-hidden">
+                      <ScrollView
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={true}
+                      >
+                        {suggestions.map((fund) => (
+                          <TouchableOpacity
+                            key={fund.scheme_code}
+                            onPress={() => selectFund(fund, i)}
+                            className="px-3.5 py-2.5 border-b border-slate-700/60 active:bg-slate-700/50"
+                          >
+                            <Text className="text-xs font-medium text-slate-100" numberOfLines={1}>
+                              {fund.scheme_name}
+                            </Text>
+                            {fund.fund_house && (
+                              <Text className="text-[10px] text-slate-400 mt-0.5">
+                                {fund.fund_house}
+                              </Text>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {/* Amount Field */}
                 <TextInput
-                  value={h.name}
-                  onChangeText={(text) => {
-                    updateField(i, 'name', text);
-                    searchFunds(text, i);
-                  }}
-                  onBlur={() => setTimeout(clearSuggestions, 200)}
-                  placeholder="Search fund e.g. HDFC Flexi"
+                  value={h.value}
+                  onChangeText={(text) => updateField(i, 'value', text)}
+                  placeholder="₹ amount"
                   placeholderTextColor="#64748B"
-                  className={`h-11 bg-slate-900 border rounded-xl px-3 text-xs text-slate-100 ${
+                  keyboardType="numeric"
+                  className={`w-24 h-11 bg-slate-900 border rounded-xl px-3 text-xs text-slate-100 ${
                     error ? 'border-rose-500/80' : 'border-slate-700/80'
                   }`}
                 />
-                {h.scheme_code ? (
-                  <View className="absolute right-3 top-3.5">
-                    <CheckCircle size={15} color="#10B981" />
-                  </View>
-                ) : null}
 
-                {/* Suggestions Dropdown */}
-                {activeIndex === i && suggestions.length > 0 && (
-                  <View className="absolute top-12 left-0 right-0 bg-slate-800 border border-sky-500/60 rounded-xl max-h-48 z-50 shadow-xl overflow-hidden">
-                    <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                      {suggestions.map((fund) => (
-                        <TouchableOpacity
-                          key={fund.scheme_code}
-                          onPress={() => selectFund(fund, i)}
-                          className="px-3.5 py-2.5 border-b border-slate-700/60"
-                        >
-                          <Text className="text-xs font-medium text-slate-100" numberOfLines={1}>
-                            {fund.scheme_name}
-                          </Text>
-                          {fund.fund_house && (
-                            <Text className="text-[10px] text-slate-400 mt-0.5">
-                              {fund.fund_house}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
+                {/* Delete Button - Scaled nicely to avoid overlap */}
+                {holdings.length > 2 && (
+                  <TouchableOpacity
+                    onPress={() => removeRow(i)}
+                    className="w-9 h-11 border border-rose-500/30 bg-rose-500/5 rounded-xl items-center justify-center shrink-0"
+                  >
+                    <Trash2 size={15} color="#F43F5E" />
+                  </TouchableOpacity>
                 )}
               </View>
-
-              {/* Amount Field */}
-              <TextInput
-                value={h.value}
-                onChangeText={(text) => updateField(i, 'value', text)}
-                placeholder="₹ amount"
-                placeholderTextColor="#64748B"
-                keyboardType="numeric"
-                className={`w-24 h-11 bg-slate-900 border rounded-xl px-3 text-xs text-slate-100 ${
-                  error ? 'border-rose-500/80' : 'border-slate-700/80'
-                }`}
-              />
-
-              {/* Delete Button */}
-              {holdings.length > 2 && (
-                <TouchableOpacity
-                  onPress={() => removeRow(i)}
-                  className="w-10 h-11 border border-rose-500/30 bg-rose-500/5 rounded-xl items-center justify-center"
-                >
-                  <Trash2 size={16} color="#F43F5E" />
-                </TouchableOpacity>
-              )}
+              {error && <Text className="text-[10px] text-rose-400 mt-1 ml-1">{error}</Text>}
             </View>
-            {error && <Text className="text-[10px] text-rose-400 mt-1 ml-1">{error}</Text>}
-          </View>
-        );
-      })}
+          );
+        })}
 
-      {/* Add Row Button */}
-      <TouchableOpacity
-        onPress={addRow}
-        activeOpacity={0.7}
-        className="flex-row items-center border border-sky-500/30 rounded-xl py-2 px-3 self-start mb-4"
-      >
-        <Plus size={13} color="#38BDF8" />
-        <Text className="text-xs font-bold text-sky-400 ml-1.5">Add Fund</Text>
-      </TouchableOpacity>
+        {/* Add Row Button */}
+        <TouchableOpacity
+          onPress={addRow}
+          activeOpacity={0.7}
+          className="flex-row items-center border border-sky-500/30 rounded-xl py-2 px-3 self-start mb-6 mt-1"
+        >
+          <Plus size={13} color="#38BDF8" />
+          <Text className="text-xs font-bold text-sky-400 ml-1.5">Add Fund</Text>
+        </TouchableOpacity>
 
-      {/* Primary Submit Button */}
-      <TouchableOpacity
-        onPress={handleAnalyze}
-        disabled={loading}
-        activeOpacity={0.8}
-        className={`h-12 rounded-xl flex-row items-center justify-center ${
-          loading ? 'bg-blue-600/60' : 'bg-blue-600 shadow-md'
-        }`}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <>
-            <Text className="text-xs font-bold text-white mr-1.5">Analyze My Portfolio</Text>
-            <ArrowRight size={15} color="#fff" />
-          </>
-        )}
-      </TouchableOpacity>
-    </View>
+        {/* Primary Submit Button */}
+        <TouchableOpacity
+          onPress={handleAnalyze}
+          disabled={loading}
+          activeOpacity={0.8}
+          className={`h-12 rounded-xl flex-row items-center justify-center ${
+            loading ? 'bg-blue-600/60' : 'bg-blue-600 shadow-md'
+          }`}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text className="text-xs font-bold text-white mr-1.5">Analyze My Portfolio</Text>
+              <ArrowRight size={15} color="#fff" />
+            </>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

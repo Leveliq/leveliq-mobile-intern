@@ -89,14 +89,20 @@ function UploadFlowView({
     if (!parsed?.resolved?.length) return;
     setStatus('analyzing');
 
+    let token: string | null = null;
     try {
-      const token = await runAnalysis(parsed.resolved, userId);
-      if (mountedRef.current) onComplete(token);
-    } catch {
+      token = await runAnalysis(parsed.resolved, userId);
+    } catch (err: any) {
+      console.error('UploadTab analysis error:', err);
       if (mountedRef.current) {
-        setError('Analysis failed. Please check your connection and try again.');
+        setError(err?.message || 'Analysis failed. Please check your connection and try again.');
         setStatus('error');
       }
+      return;
+    }
+
+    if (mountedRef.current && token) {
+      onComplete(token);
     }
   };
 
