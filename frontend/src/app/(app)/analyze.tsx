@@ -36,14 +36,15 @@ export default function AnalyzeScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-slate-950"
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 20}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 20, paddingBottom: 140 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets={true}
       >
         {/* Header Section */}
         <View className="mb-8 mt-6">
@@ -57,8 +58,9 @@ export default function AnalyzeScreen() {
 
         {/* Main Card Container */}
         <View className="bg-slate-900/50 border border-slate-800/80 rounded-3xl p-5 mb-6">
+          
           {/* Segmented Tab Bar */}
-          <View className="flex-row bg-slate-950 p-1 rounded-xl mb-6 border border-slate-800/60">
+          <View className="flex-row bg-slate-950 p-1.5 rounded-xl mb-6 border border-slate-800/60 gap-1">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -73,7 +75,8 @@ export default function AnalyzeScreen() {
                 >
                   <Icon size={14} color={isActive ? '#38BDF8' : '#64748B'} />
                   <Text
-                    className={`ml-1.5 text-xs font-semibold ${
+                    numberOfLines={1}
+                    className={`ml-1.5 text-[11px] font-semibold tracking-wide ${
                       isActive ? 'text-white' : 'text-slate-400'
                     }`}
                   >
@@ -97,7 +100,6 @@ export default function AnalyzeScreen() {
             )}
           </View>
         </View>
- 
       </ScrollView>
     </KeyboardAvoidingView>
   );

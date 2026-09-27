@@ -5,7 +5,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, AlertCircle, CheckCircle2, Info, Activity, Layers, Briefcase, ShieldAlert, BarChart2 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const API = process.env.EXPO_PUBLIC_API_URL || "https://leveliq-production.up.railway.app";
+const API = process.env.EXPO_PUBLIC_API_URL;
 const { width } = Dimensions.get('window');
 
 const GRADE_COLOR: Record<string, string> = {

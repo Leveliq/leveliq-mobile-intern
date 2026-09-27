@@ -24,7 +24,7 @@ export interface AnalysisResponse {
 }
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
+  process.env.EXPO_PUBLIC_API_URL ;
 
 export const DEFAULT_PORTFOLIO: PortfolioHolding[] = [
   { scheme_code: '100016', scheme_name: 'HDFC Flexi Cap Fund Direct Growth', fund_house: 'HDFC Mutual Fund', value: 50000 },

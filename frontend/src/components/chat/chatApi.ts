@@ -2,7 +2,7 @@
 import { supabase } from '../../lib/supabase';
 import { ChatMessage, ChatSession } from './types';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
+const API = process.env.EXPO_PUBLIC_API_URL;
 
 export async function saveMessage(
   userId: string,
@@ -11,34 +11,31 @@ export async function saveMessage(
   message: string
 ): Promise<void> {
   try {
-    const { error } = await supabase.from('chat_messages').insert({
+    await supabase.from('chat_messages').insert({
       user_id: userId,
       session_id: sessionId,
       role,
       message,
     });
-    if (error) {
-      console.warn('[Chat RLS/DB Error] Failed to save message:', error.message);
-    }
   } catch (e) {
     console.warn('[Chat Exception] Failed to save message:', e);
   }
 }
 
 export async function sendChatMessage(
-  message: string,
+  messages: { role: string; content: string }[],
   userPlan: string,
   portfolioContext?: any
 ): Promise<string> {
   const targetUrl = `${API}/api/chat`;
   const payload = {
-    message,
+    messages, // Sending full conversation history
     portfolio_context: portfolioContext,
     user_plan: userPlan,
   };
 
-  console.log('[ChatApi] 🚀 Sending message to:', targetUrl);
-  console.log('[ChatApi] 📦 Payload:', JSON.stringify(payload, null, 2));
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
 
   try {
     const res = await fetch(targetUrl, {
@@ -48,22 +45,22 @@ export async function sendChatMessage(
         'Accept': 'application/json',
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
 
-    console.log('[ChatApi] 📥 Response Status:', res.status);
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error('[ChatApi] ❌ Server returned error text:', errorText);
       throw new Error(`Server returned status ${res.status}: ${errorText}`);
     }
 
     const data = await res.json();
-    console.log('[ChatApi] ✅ Server returned JSON:', data);
-
     return data.reply || 'No response received from the assistant.';
   } catch (err: any) {
-    console.error('[ChatApi] 🚨 Network/Fetch Exception details:', err);
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. The server took too long to respond.');
+    }
     throw err;
   }
 }
@@ -76,11 +73,7 @@ export async function loadSessions(userId: string): Promise<ChatSession[]> {
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('[ChatApi] Failed to load sessions:', error.message);
-      return [];
-    }
-    if (!data) return [];
+    if (error || !data) return [];
 
     const sessionMap = new Map<string, ChatSession>();
     data.forEach((msg) => {
@@ -99,9 +92,8 @@ export async function loadSessions(userId: string): Promise<ChatSession[]> {
       }
     });
 
-    return Array.from(sessionMap.values()).slice(0, 30);
+    return Array.from(sessionMap.values());
   } catch (e) {
-    console.error('[ChatApi] Exception inside loadSessions:', e);
     return [];
   }
 }
@@ -114,11 +106,7 @@ export async function loadSessionMessages(sessionId: string): Promise<ChatMessag
       .eq('session_id', sessionId)
       .order('created_at', { ascending: true });
 
-    if (error) {
-      console.error('[ChatApi] Failed to load session messages:', error.message);
-      return [];
-    }
-    if (!data) return [];
+    if (error || !data) return [];
 
     return data.map((m) => ({
       role: m.role as 'user' | 'assistant',
@@ -129,14 +117,10 @@ export async function loadSessionMessages(sessionId: string): Promise<ChatMessag
       }),
     }));
   } catch (e) {
-    console.error('[ChatApi] Exception inside loadSessionMessages:', e);
     return [];
   }
 }
 
 export function getTime(): string {
-  return new Date().toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
