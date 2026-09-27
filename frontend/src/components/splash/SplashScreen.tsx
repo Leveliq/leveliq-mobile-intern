@@ -1,21 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, useWindowDimensions, Easing } from 'react-native';
-import { SvgXml } from 'react-native-svg';
+import { View, Text, Animated, useWindowDimensions, Easing, Image } from 'react-native';
 
-const svgLogoXML = `
-<svg width="100%" height="100%" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M38 35V85C38 90.5228 42.4772 95 48 95H92" stroke="url(#l-gradient)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M46 73L63 54L77 66L102 37" stroke="#38BDF8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M88 37H102V51" stroke="#38BDF8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
-  <circle cx="97" cy="90" r="5.5" fill="#38BDF8" />
-  <defs>
-    <linearGradient id="l-gradient" x1="38" y1="35" x2="92" y2="95" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#60A5FA" />
-      <stop offset="1" stop-color="#2563EB" />
-    </linearGradient>
-  </defs>
-</svg>
-`;
+const logoImage = require('../../../assets/images/Logo.png');
 
 export default function SplashScreen({ onAnimationComplete }: { onAnimationComplete: () => void }) {
   const { width, height } = useWindowDimensions();
@@ -120,8 +106,12 @@ export default function SplashScreen({ onAnimationComplete }: { onAnimationCompl
               shadowColor: '#2563EB', shadowOffset: { width: 0, height: 18 }, shadowOpacity: 0.4, shadowRadius: 32, elevation: 16
             }}
           >
-            <View className="w-[78%] h-[78%] items-center justify-center">
-              <SvgXml xml={svgLogoXML} width="100%" height="100%" />
+            <View className="w-[82%] h-[82%] items-center justify-center">
+              <Image
+                source={logoImage}
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="contain"
+              />
             </View>
           </Animated.View>
         </View>
