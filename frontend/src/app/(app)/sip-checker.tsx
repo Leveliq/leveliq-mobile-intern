@@ -23,7 +23,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const API = process.env.EXPO_PUBLIC_API_URL || 'https://leveliq-production.up.railway.app';
+const API = process.env.EXPO_PUBLIC_API_URL ;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isSmall = SCREEN_WIDTH < 340;
 
