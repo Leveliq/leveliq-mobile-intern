@@ -20,19 +20,13 @@ function AuthGuard() {
     const inAppGroup = segments[0] === '(app)';
     const isAuthCallback = segments[0] === 'auth';
 
-    // Allow OAuth callback route to process without interference
-    if (isAuthCallback) {
-      return;
-    }
+    if (isAuthCallback) return;
 
     if (!user && !inAuthGroup) {
-      // Redirect to Login if unauthenticated
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
-      // Redirect to Dashboard if authenticated but on auth screens
       router.replace('/(app)');
     } else if (user && !inAppGroup && !inAuthGroup) {
-      // Direct root access fallback
       router.replace('/(app)');
     }
   }, [user, loading, segments]);
@@ -51,21 +45,17 @@ function AuthGuard() {
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
 
-  if (!isReady) {
-    return (
-      <>
-        <StatusBar style="light" />
-        <SplashScreen onAnimationComplete={() => setIsReady(true)} />
-      </>
-    );
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      {/* AuthProvider is loaded immediately so session checking starts in parallel with the splash animation */}
       <AuthProvider>
         <StatusBar style="light" />
         <View style={{ flex: 1, backgroundColor: '#050816' }}>
-          <AuthGuard />
+          {!isReady ? (
+            <SplashScreen onAnimationComplete={() => setIsReady(true)} />
+          ) : (
+            <AuthGuard />
+          )}
         </View>
       </AuthProvider>
     </GestureHandlerRootView>

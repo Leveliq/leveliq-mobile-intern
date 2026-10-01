@@ -15,6 +15,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Tab, TABS } from '../../components/analyze/types';
 import { PDFUpload, ScreenshotUpload } from '../../components/analyze/UploadTab';
 import { ManualEntryTab } from '../../components/analyze/ManualEntryTab';
+import { QuickToolsGrid } from '../../components/analyze/QuickToolsGrid';
 
 export default function AnalyzeScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('manual');
@@ -100,6 +101,9 @@ export default function AnalyzeScreen() {
             )}
           </View>
         </View>
+
+        {/* 2x2 Quick Tools Grid */}
+        <QuickToolsGrid />
       </ScrollView>
     </KeyboardAvoidingView>
   );

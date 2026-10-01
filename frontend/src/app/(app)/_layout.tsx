@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable } from 'react-native';
 import { Drawer } from 'expo-router/drawer';
 import { useRouter } from 'expo-router';
 import {
@@ -8,7 +8,6 @@ import {
   CreditCard,
   Upload,
   LogOut,
-  ChevronUp,
   ChevronDown,
   Plus,
   MessageSquare,
@@ -22,7 +21,6 @@ import { useAuth } from '../../context/AuthContext';
 import InvestIQChat from '../../components/chat/InvestIQChat';
 import { loadSessions } from '../../components/chat/chatApi';
 
-// 1. NAVIGATION SECTION MENU
 const NAVIGATION_MENU = [
   { label: 'Dashboard', icon: LayoutDashboard, route: 'index' },
   { label: 'Analyze Portfolio', icon: Upload, route: 'analyze' },
@@ -30,7 +28,6 @@ const NAVIGATION_MENU = [
   { label: 'Market Brief', icon: Newspaper, route: 'market-brief' },
 ];
 
-// 2. TOOLS SECTION MENU
 const TOOLS_MENU = [
   { label: 'SIP Calculator', icon: Calculator, route: 'sip-calculator' },
   { label: 'Debt Check', icon: CreditCard, route: 'debt' },
@@ -47,7 +44,6 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
   const { user, userName, signOut } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [isUserExpanded, setIsUserExpanded] = useState(false);
   
   const [sessions, setSessions] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -85,15 +81,20 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
   return (
     <View className="flex-1 bg-[#050816]" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       {/* Header Logo */}
-      <View className="px-6 py-5 border-b border-sky-400/10 mb-2">
+      <TouchableOpacity 
+        activeOpacity={0.8}
+        onPress={() => {
+          drawerProps.navigation?.closeDrawer?.();
+          router.push('/(app)/analyze');
+        }}
+        className="px-6 py-5 border-b border-sky-400/10 mb-2"
+      >
         <Text className="text-slate-50 text-xl font-extrabold tracking-wide">
           Level<Text className="text-[#38BDF8]">IQ</Text>
         </Text>
-      </View>
+      </TouchableOpacity>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: 4, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
-        
-        {/* ================= NAVIGATION SECTION ================= */}
         <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-6 mb-2 mt-1">NAVIGATION</Text>
         {NAVIGATION_MENU.map((item) => {
           const Icon = item.icon;
@@ -112,10 +113,8 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
           );
         })}
 
-        {/* Separator */}
         <View className="h-[1px] bg-slate-800/60 my-4 mx-6" />
 
-        {/* ================= TOOLS SECTION ================= */}
         <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-6 mb-2">TOOLS</Text>
         {TOOLS_MENU.map((item) => {
           const Icon = item.icon;
@@ -134,10 +133,8 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
           );
         })}
 
-        {/* Separator */}
         <View className="h-[1px] bg-slate-800/60 my-4 mx-6" />
 
-        {/* ================= CHAT SECTION ================= */}
         <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-6 mb-2">INVESTIQ CHAT</Text>
         <View className="mx-3">
           <TouchableOpacity 
@@ -188,29 +185,27 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
 
       {/* User Session Footer */}
       <View className="border-t border-sky-400/10 p-4">
-        <TouchableOpacity activeOpacity={0.8} onPress={() => setIsUserExpanded(!isUserExpanded)} className="flex-row items-center bg-[#0f172a] border border-sky-400/15 p-3 rounded-2xl">
+        <View className="flex-row items-center bg-[#0f172a] border border-sky-400/15 p-3 rounded-2xl mb-2">
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} className="w-10 h-10 rounded-full bg-slate-800" />
+            <Image source={{ uri: avatarUrl }} className="w-9 h-9 rounded-full bg-slate-800" />
           ) : (
-            <View className="w-10 h-10 rounded-full bg-blue-600/25 border border-[#38BDF8] items-center justify-center">
-              <Text className="text-[#38BDF8] text-base font-bold">{initial}</Text>
+            <View className="w-9 h-9 rounded-full bg-blue-600/25 border border-[#38BDF8] items-center justify-center">
+              <Text className="text-[#38BDF8] text-sm font-bold">{initial}</Text>
             </View>
           )}
           <View className="ml-3 flex-1">
-            <Text className="text-slate-50 text-sm font-bold" numberOfLines={1}>{displayName}</Text>
+            <Text className="text-slate-50 text-xs font-bold" numberOfLines={1}>{displayName}</Text>
+            <Text className="text-slate-400 text-[10px]" numberOfLines={1}>{user?.email}</Text>
           </View>
-          {isUserExpanded ? <ChevronDown size={18} color="#94A3B8" /> : <ChevronUp size={18} color="#94A3B8" />}
+        </View>
+        <TouchableOpacity 
+          activeOpacity={0.8}
+          onPress={async () => { await signOut(); }} 
+          className="flex-row items-center justify-center py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl"
+        >
+          <LogOut size={14} color="#F87171" />
+          <Text className="text-red-400 text-xs font-bold ml-2">Sign Out</Text>
         </TouchableOpacity>
-
-        {isUserExpanded && (
-          <View className="mt-3 px-2">
-            <Text className="text-slate-400 text-xs mb-3 text-center" numberOfLines={1}>{user?.email}</Text>
-            <TouchableOpacity onPress={async () => { drawerProps.navigation?.closeDrawer?.(); await signOut(); }} className="flex-row items-center justify-center py-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-              <LogOut size={14} color="#F87171" />
-              <Text className="text-red-400 text-xs font-bold ml-2">Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     </View>
   );
@@ -219,6 +214,14 @@ function CustomDrawerContent({ drawerProps, onOpenChat }: DrawerContentProps) {
 export default function AppLayout() {
   const [chatOpen, setChatOpen] = useState(false);
   const [targetSessionId, setTargetSessionId] = useState<string | undefined>();
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+
+  const { user, userName, signOut } = useAuth();
+  const router = useRouter();
+
+  const displayName = userName || 'Investor';
+  const avatarUrl = user?.user_metadata?.avatar_url;
+  const initial = displayName.charAt(0).toUpperCase();
 
   const handleOpenChat = (sessionId?: string) => {
     setTargetSessionId(sessionId);
@@ -235,7 +238,26 @@ export default function AppLayout() {
           headerStyle: { backgroundColor: '#050816', elevation: 0, shadowOpacity: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(56,189,248,0.1)' },
           headerTintColor: '#F8FAFC',
           headerTitle: () => (
-            <Text className="text-slate-50 text-lg font-extrabold tracking-wide">Level<Text className="text-[#38BDF8]">IQ</Text></Text>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => router.push('/(app)/analyze')}>
+              <Text className="text-slate-50 text-lg font-extrabold tracking-wide">
+                Level<Text className="text-[#38BDF8]">IQ</Text>
+              </Text>
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity 
+              activeOpacity={0.8} 
+              onPress={() => setProfileModalVisible(true)}
+              style={{ marginRight: 16 }}
+            >
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} className="w-8 h-8 rounded-full bg-slate-800" />
+              ) : (
+                <View className="w-8 h-8 rounded-full bg-blue-600/25 border border-[#38BDF8] items-center justify-center">
+                  <Text className="text-[#38BDF8] text-xs font-bold">{initial}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           ),
           drawerType: 'front',
           drawerStyle: { backgroundColor: '#050816', width: 290 },
@@ -243,22 +265,67 @@ export default function AppLayout() {
           sceneStyle: { backgroundColor: '#050816' },
         }}
       >
-        {/* Navigation Screen Stack */}
         <Drawer.Screen name="index" options={{ title: 'Dashboard', drawerLabel: 'Dashboard' }} />
         <Drawer.Screen name="analyze" options={{ title: 'Analyze Portfolio', drawerLabel: 'Analyze Portfolio' }} />
         <Drawer.Screen name="sip-checker" options={{ title: 'Pre-SIP Check', drawerLabel: 'Pre-SIP Check' }} />
         <Drawer.Screen name="market-brief" options={{ title: 'Market Brief', drawerLabel: 'Market Brief' }} />
-
-        {/* Tools Screen Stack */}
         <Drawer.Screen name="sip-calculator" options={{ title: 'SIP Calculator', drawerLabel: 'SIP Calculator' }} />
         <Drawer.Screen name="debt" options={{ title: 'Debt Check', drawerLabel: 'Debt Check' }} />
         <Drawer.Screen name="starter-iq" options={{ title: 'Starter IQ', drawerLabel: 'Starter IQ' }} />
         <Drawer.Screen name="stocks-iq/index" options={{ title: 'Stocks IQ', drawerLabel: 'Stocks IQ' }} />
-        
-        {/* Hidden sub/nested routes config */}
         <Drawer.Screen name="stocks-iq/[symbol]" options={{ drawerItemStyle: { display: 'none' }, title: 'Stock Detail' }} />
         <Drawer.Screen name="report/[token]" options={{ drawerItemStyle: { display: 'none' }, headerShown: false }} />
       </Drawer>
+
+      {/* LeetCode Style Profile Popover Modal */}
+      <Modal
+        visible={profileModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <Pressable className="flex-1 bg-black/60 justify-start items-end pt-14 pr-4" onPress={() => setProfileModalVisible(false)}>
+          <Pressable className="w-72 bg-[#0f172a] border border-sky-400/20 rounded-2xl p-4 shadow-2xl">
+            <View className="flex-row items-center mb-3 pb-3 border-b border-slate-800">
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} className="w-11 h-11 rounded-full bg-slate-800" />
+              ) : (
+                <View className="w-11 h-11 rounded-full bg-blue-600/25 border border-[#38BDF8] items-center justify-center">
+                  <Text className="text-[#38BDF8] text-base font-bold">{initial}</Text>
+                </View>
+              )}
+              <View className="ml-3 flex-1">
+                <Text className="text-slate-50 text-sm font-bold" numberOfLines={1}>{displayName}</Text>
+                <Text className="text-slate-400 text-[11px] lowercase mt-0.5" numberOfLines={1}>{user?.email}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={() => {
+                setProfileModalVisible(false);
+                router.push('/(app)');
+              }}
+              className="flex-row items-center px-3 py-2.5 rounded-xl mb-1 bg-slate-800/40"
+            >
+              <LayoutDashboard size={16} color="#38BDF8" />
+              <Text className="ml-3 text-slate-200 text-xs font-semibold">Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              onPress={async () => {
+                setProfileModalVisible(false);
+                await signOut();
+              }}
+              className="flex-row items-center px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 mt-1"
+            >
+              <LogOut size={16} color="#F87171" />
+              <Text className="ml-3 text-red-400 text-xs font-semibold">Sign Out</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <InvestIQChat
         visible={chatOpen}
