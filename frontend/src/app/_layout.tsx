@@ -1,15 +1,14 @@
 // app/_layout.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import '../../global.css'; 
-import SplashScreen from '../components/splash/SplashScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
 function AuthGuard() {
-  const { user, loading } = useAuth();
+  const { user, loading, isGuest } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -22,14 +21,16 @@ function AuthGuard() {
 
     if (isAuthCallback) return;
 
-    if (!user && !inAuthGroup) {
+    const hasAccess = !!user || isGuest;
+
+    if (!hasAccess && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (user && inAuthGroup) {
-      router.replace('/(app)');
-    } else if (user && !inAppGroup && !inAuthGroup) {
-      router.replace('/(app)');
+    } else if (hasAccess && inAuthGroup) {
+      router.replace('/(app)/analyze'); // Redirects straight to analyze page on sign in/up/guest
+    } else if (hasAccess && !inAppGroup && !inAuthGroup) {
+      router.replace('/(app)/analyze');
     }
-  }, [user, loading, segments]);
+  }, [user, loading, isGuest, segments]);
 
   if (loading) {
     return (
@@ -43,19 +44,12 @@ function AuthGuard() {
 }
 
 export default function RootLayout() {
-  const [isReady, setIsReady] = useState(false);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* AuthProvider is loaded immediately so session checking starts in parallel with the splash animation */}
       <AuthProvider>
         <StatusBar style="light" />
         <View style={{ flex: 1, backgroundColor: '#050816' }}>
-          {!isReady ? (
-            <SplashScreen onAnimationComplete={() => setIsReady(true)} />
-          ) : (
-            <AuthGuard />
-          )}
+          <AuthGuard />
         </View>
       </AuthProvider>
     </GestureHandlerRootView>

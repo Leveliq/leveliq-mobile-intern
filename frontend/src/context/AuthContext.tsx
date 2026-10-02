@@ -1,37 +1,105 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Platform, Alert } from 'react-native';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
+import { Platform } from 'react-native';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import * as AuthSession from 'expo-auth-session';
 import { supabase } from '../lib/supabase';
 
-// Required for web browser OAuth redirects
 WebBrowser.maybeCompleteAuthSession();
+
+type AuthResult = { error: AuthError | Error | null };
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isGuest: boolean;
+  hasAccess: boolean;
   userName: string;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | Error | null }>;
-  signUp: (name: string, email: string, password: string) => Promise<{ error: AuthError | Error | null; user?: User | null }>;
-  signInWithGoogle: () => Promise<{ error: AuthError | Error | null }>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<AuthResult & { user?: User | null; session?: Session | null }>;
+  signInWithGoogle: () => Promise<AuthResult>;
+  continueAsGuest: () => void;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function parseParams(str: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  str.split('&').forEach((pair) => {
+    if (!pair) return;
+    const [key, value = ''] = pair.split('=');
+    out[decodeURIComponent(key)] = decodeURIComponent(value.replace(/\+/g, ' '));
+  });
+  return out;
+}
+
+function parseAuthUrl(rawUrl: string) {
+  const [beforeHash, hash = ''] = rawUrl.split('#');
+  const query = beforeHash.split('?')[1] ?? '';
+  const params = { ...parseParams(query), ...parseParams(hash) };
+  return {
+    accessToken: params.access_token ?? null,
+    refreshToken: params.refresh_token ?? null,
+    code: params.code ?? null,
+    errorDescription: params.error_description ?? null,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGuest, setIsGuest] = useState(false);
+
+  const inFlight = useRef(new Map<string, Promise<AuthResult | null>>());
+
+  const createSessionFromUrl = useCallback((url: string) => {
+    const existing = inFlight.current.get(url);
+    if (existing) return existing;
+
+    const promise = (async (): Promise<AuthResult | null> => {
+      const { accessToken, refreshToken, code, errorDescription } = parseAuthUrl(url);
+      if (errorDescription) return { error: new Error(errorDescription) };
+
+      if (accessToken && refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        return { error };
+      }
+
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        return { error };
+      }
+
+      return null;
+    })();
+
+    inFlight.current.set(url, promise);
+    return promise;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Initial Session Fetch
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
@@ -40,217 +108,138 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session?.user ?? null);
         }
       })
-      .catch((err) => {
-        console.error('Error fetching Supabase session on startup:', err);
-      })
+      .catch((err) => console.error('Error restoring session:', err))
       .finally(() => {
         if (isMounted) setLoading(false);
       });
 
-    // 2. Auth State Change Listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+      if (nextSession) setIsGuest(false);
     });
 
-    // 3. Deep Link Listener for OAuth Redirects
-    const handleDeepLink = async (event: { url: string }) => {
-      if (!event.url) return;
-      console.log('🔗 [OAuth] Incoming deep link:', event.url);
-      try {
-        const url = new URL(event.url);
-        const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-
-        const accessToken = fragmentParams.get('access_token');
-        const refreshToken = fragmentParams.get('refresh_token');
-        const code = url.searchParams.get('code') || fragmentParams.get('code');
-
-        if (accessToken && refreshToken) {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (!error && data.session && isMounted) {
-            setSession(data.session);
-            setUser(data.user);
-          }
-        } else if (code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-          if (!error && data.session && isMounted) {
-            setSession(data.session);
-            setUser(data.user);
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing incoming deep link:', e);
-      }
+    const logRedirectError = (result: AuthResult | null) => {
+      if (result?.error) console.error('OAuth redirect error:', result.error.message);
     };
 
-    const linkSubscription = Linking.addEventListener('url', handleDeepLink);
-
-    // Check if app was cold-started by a deep link
-    Linking.getInitialURL().then((url) => {
-      if (url && isMounted) {
-        handleDeepLink({ url });
-      }
+    const linkSubscription = Linking.addEventListener('url', ({ url }) => {
+      createSessionFromUrl(url).then(logRedirectError).catch((e) =>
+        console.error('OAuth redirect failed:', e instanceof Error ? e.message : e)
+      );
     });
+
+    Linking.getInitialURL()
+      .then((url) => (url ? createSessionFromUrl(url) : null))
+      .then(logRedirectError)
+      .catch((e) => console.error('OAuth redirect failed:', e instanceof Error ? e.message : e));
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
       linkSubscription.remove();
     };
-  }, []);
+  }, [createSessionFromUrl]);
 
-  const signIn = async (email: string, password: string) => {
-    setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
-    if (!error) {
-      setSession(data.session);
-      setUser(data.user);
-    }
-    setLoading(false);
     return { error };
-  };
+  }, []);
 
-  const signUp = async (name: string, email: string, password: string) => {
-    setLoading(true);
+  const signUp = useCallback(async (name: string, email: string, password: string) => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: {
-        data: { full_name: name.trim() },
-      },
+      options: { data: { full_name: name.trim() } },
     });
-    if (!error) {
-      setSession(data.session);
-      setUser(data.user);
-    }
-    setLoading(false);
-    return { error, user: data.user };
-  };
+    return { error, user: data?.user ?? null, session: data?.session ?? null };
+  }, []);
 
-  const signInWithGoogle = async () => {
-    setLoading(true);
+  const signInWithGoogle = useCallback(async (): Promise<AuthResult> => {
     try {
       if (Platform.OS === 'android') {
         await WebBrowser.warmUpAsync();
       }
 
-      // Generate redirect URI that works for both Standalone/DevClient (leveliq://) and Expo Go
-      const redirectUrl = AuthSession.makeRedirectUri({
-        scheme: 'leveliq',
-        path: 'auth/callback',
-      });
-      console.log('🔗 [OAuth] Redirect URL generated:', redirectUrl);
-      console.warn('🔗 [OAuth] Redirect URL generated: ' + redirectUrl);
-
-      // Alert the exact URL so you can verify it character-for-character against Supabase
-      if (__DEV__) {
-        Alert.alert(
-          'OAuth Redirect URL',
-          `Your app is sending this exact URL to Supabase:\n\n${redirectUrl}\n\nMake sure this EXACT string is in your Supabase Redirect URLs!`,
-          [{ text: 'Proceed to Google' }]
-        );
-      }
+      const redirectTo = Linking.createURL('auth/callback', { scheme: 'leveliq' });
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: redirectUrl,
+          redirectTo,
           skipBrowserRedirect: true,
-          queryParams: {
-            prompt: 'select_account',
-          },
+          queryParams: { prompt: 'select_account' },
         },
       });
 
       if (error || !data?.url) {
-        return { error: error || new Error('Could not initiate Google sign-in') };
+        return { error: error ?? new Error('Could not start Google sign-in.') };
       }
 
-      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
-      if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const fragmentParams = new URLSearchParams(url.hash.replace(/^#/, ''));
-        const accessToken = fragmentParams.get('access_token');
-        const refreshToken = fragmentParams.get('refresh_token');
-        const code = url.searchParams.get('code') || fragmentParams.get('code');
-
-        if (accessToken && refreshToken) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (sessionError) throw sessionError;
-          setSession(sessionData.session);
-          setUser(sessionData.user);
-        } else if (code) {
-          const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
-          if (sessionError) throw sessionError;
-          setSession(sessionData.session);
-          setUser(sessionData.user);
+      if (result.type === 'success') {
+        const outcome = await createSessionFromUrl(result.url);
+        if (!outcome) {
+          return { error: new Error('Google sign-in did not return a session. Please try again.') };
         }
-      } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        // If the OS opened the app via deep link, session might already be set or in progress
-        const { data: currentSession } = await supabase.auth.getSession();
-        if (currentSession?.session) {
-          setSession(currentSession.session);
-          setUser(currentSession.session.user);
-          return { error: null };
-        }
-        return { error: new Error('Google sign-in was cancelled.') };
+        return outcome;
       }
 
-      return { error: null };
-    } catch (err: any) {
-      return { error: err };
+      await Promise.allSettled(Array.from(inFlight.current.values()));
+      const { data: current } = await supabase.auth.getSession();
+      if (current.session) return { error: null };
+
+      return { error: new Error('Google sign-in was cancelled.') };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Google sign-in failed.') };
     } finally {
       if (Platform.OS === 'android') {
         await WebBrowser.coolDownAsync();
       }
-      setLoading(false);
     }
-  };
+  }, [createSessionFromUrl]);
 
-  const signOut = async () => {
+  const continueAsGuest = useCallback(() => {
+    setIsGuest(true);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    setIsGuest(false);
+    if (!session) return;
     const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setUser(null);
-      setSession(null);
-    }
-  };
+    if (error) console.error('Sign out failed:', error.message);
+  }, [session]);
 
-  const userName =
-    user?.user_metadata?.full_name ||
-    user?.email?.split('@')[0] ||
-    'Investor';
+  const userName = isGuest
+    ? 'Guest'
+    : user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Investor';
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        loading,
-        userName,
-        signIn,
-        signUp,
-        signInWithGoogle,
-        signOut,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      session,
+      loading,
+      isGuest,
+      hasAccess: !!user || isGuest,
+      userName,
+      signIn,
+      signUp,
+      signInWithGoogle,
+      continueAsGuest,
+      signOut,
+    }),
+    [user, session, loading, isGuest, userName, signIn, signUp, signInWithGoogle, continueAsGuest, signOut]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

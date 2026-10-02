@@ -7,59 +7,44 @@
     "userInterfaceStyle": "automatic",
     "version": "1.0.0",
     "icon": "./assets/images/Logo.png",
-
     "android": {
       "package": "com.leveliq.mobile",
-      "jsEngine": "hermes",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       }
     },
-
     "web": {
       "output": "single",
       "favicon": "./assets/images/Logo.png"
     },
-
     "plugins": [
       "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/Logo.png",
-          "imageWidth": 76
-        }
-      ],
       [
         "expo-build-properties",
         {
           "android": {
             "enableMinifyInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": true,
+            "reactNativeArchitectures": ["arm64-v8a"]
           }
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
       "router": {},
       "eas": {
         "projectId": "7b4c9047-8d38-42e8-a128-c8431ef5e3c6"
       }
     },
-
     "ios": {},
-
     "runtimeVersion": {
       "policy": "appVersion"
     },
-
     "updates": {
       "url": "https://u.expo.dev/7b4c9047-8d38-42e8-a128-c8431ef5e3c6"
     }

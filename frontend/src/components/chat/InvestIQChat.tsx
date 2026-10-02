@@ -10,13 +10,14 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-import { X, Sparkles } from 'lucide-react-native';
+import { X, Sparkles, History } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { saveMessage, sendChatMessage, loadSessionMessages, getTime } from './chatApi';
 import { ChatMessage } from './types';
 import ChatBubble from './ChatBubble';
 import TypingIndicator from './TypingIndicator';
 import ChatInput from './ChatInput';
+import ChatHistoryModal from './ChatHistoryModal';
 
 interface Props {
   visible: boolean;
@@ -27,7 +28,7 @@ interface Props {
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
-  text: "Hi! I'm InvestIQ™ 👋\n\nAsk me anything about:\n- Portfolio health score\n- Mutual fund overlap\n- Investment strategies",
+  text: "Hey there! 👋\n\nMay the gains be with you today. Ask me anything about your investments, portfolios, or market strategies.",
 };
 
 export default function InvestIQChat({
@@ -41,6 +42,7 @@ export default function InvestIQChat({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState(() => `session_${Date.now()}`);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
 
@@ -115,25 +117,37 @@ export default function InvestIQChat({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           {/* Header */}
-          <View className="flex-row items-center justify-between px-5 py-3.5 border-b border-slate-800/80 bg-[#050816]">
+          <View className="flex-row items-center justify-between px-5 py-4 border-b border-sky-400/15 bg-[#050816]">
             <View className="flex-row items-center gap-3">
-              <View className="w-9 h-9 rounded-full bg-blue-600/20 border border-blue-500/30 items-center justify-center">
-                <Sparkles size={16} color="#38BDF8" />
+              <View className="w-10 h-10 rounded-2xl bg-blue-600/25 border border-sky-400/30 items-center justify-center">
+                <Sparkles size={20} color="#38BDF8" />
               </View>
               <View>
-                <Text className="text-slate-50 text-[15px] font-bold">InvestIQ™</Text>
+                <Text className="text-slate-50 text-base font-extrabold tracking-wide">
+                  Groww <Text className="text-[#38BDF8]">ai</Text>
+                </Text>
                 <View className="flex-row items-center mt-0.5">
-                  <View className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" />
-                  <Text className="text-green-500 text-[10px] font-medium">Online</Text>
+                  <View className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5" />
+                  <Text className="text-emerald-400 text-[11px] font-semibold">Active Assistant</Text>
                 </View>
               </View>
             </View>
 
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2.5">
+              {/* History Trigger Icon Button */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => setHistoryModalOpen(true)}
+                className="w-10 h-10 rounded-2xl bg-[#0F172A] border border-sky-400/20 items-center justify-center"
+              >
+                <History size={18} color="#38BDF8" />
+              </TouchableOpacity>
+
+              {/* Close Button */}
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={onClose}
-                className="p-2 rounded-full bg-slate-800/60"
+                className="w-10 h-10 rounded-2xl bg-[#0F172A] border border-sky-400/20 items-center justify-center"
               >
                 <X size={18} color="#94A3B8" />
               </TouchableOpacity>
@@ -143,7 +157,7 @@ export default function InvestIQChat({
           {/* Messages Feed */}
           <ScrollView
             ref={scrollRef}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 20 }}
             keyboardShouldPersistTaps="handled"
             style={{ flex: 1, backgroundColor: '#050816' }}
           >
@@ -158,17 +172,25 @@ export default function InvestIQChat({
             {loading && <TypingIndicator />}
           </ScrollView>
 
-          {/* Floating Pill Input */}
-          <View className="bg-[#050816] pb-2">
+          {/* Bottom Floating Input */}
+          <View className="bg-[#050816] pb-3">
             <ChatInput
               value={input}
               onChangeText={setInput}
               onSend={handleSend}
               disabled={loading}
+              placeholder="Ask anything..."
             />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* History Selection Dropdown Modal */}
+      <ChatHistoryModal
+        visible={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        onSelectSession={handleSelectSession}
+      />
     </Modal>
   );
 }

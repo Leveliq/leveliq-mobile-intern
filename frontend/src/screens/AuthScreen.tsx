@@ -1,3 +1,4 @@
+// src/screens/AuthScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -14,21 +15,6 @@ import { SvgXml } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 
-const svgLogoMini = `
-<svg width="40" height="40" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M38 35V85C38 90.5228 42.4772 95 48 95H92" stroke="url(#l-grad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M46 73L63 54L77 66L102 37" stroke="#38BDF8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M88 37H102V51" stroke="#38BDF8" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="97" cy="90" r="6" fill="#38BDF8"/>
-  <defs>
-    <linearGradient id="l-grad" x1="38" y1="35" x2="92" y2="95" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#60A5FA"/>
-      <stop offset="1" stop-color="#2563EB"/>
-    </linearGradient>
-  </defs>
-</svg>
-`;
-
 const svgGoogle = `
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -43,7 +29,7 @@ interface AuthScreenProps {
 }
 
 export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps = {}) {
-  const { signIn, signUp, signInWithGoogle, loading: authLoading } = useAuth();
+  const { signIn, signUp, signInWithGoogle, continueAsGuest, loading: authLoading } = useAuth();
   const insets = useSafeAreaInsets();
 
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
@@ -110,10 +96,6 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
     <View className="flex-1 bg-[#050816]" style={{ flex: 1, backgroundColor: '#050816' }}>
       <StatusBar barStyle="light-content" backgroundColor="#050816" />
 
-      {/* Ambient background glows */}
-      <View className="absolute top-[-110px] self-center w-[320px] h-[320px] rounded-full bg-[#123D91] opacity-[0.28]" pointerEvents="none" />
-      <View className="absolute bottom-[-130px] self-center w-[320px] h-[320px] rounded-full bg-[#0C4A6E] opacity-[0.22]" pointerEvents="none" />
-
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={{
@@ -127,17 +109,10 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          
           <View className="w-full max-w-[420px] items-center">
             
-            {/* Header Brand */}
-            <View className="items-center w-full mb-4">
-              <View 
-                className="w-14 h-14 rounded-2xl items-center justify-center bg-[#0f234e]/75 border border-blue-400/30 mb-2.5"
-                style={{ shadowColor: '#2563EB', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 18, elevation: 8 }}
-              >
-                <SvgXml xml={svgLogoMini} width={34} height={34} />
-              </View>
+            {/* Minimal Header (Icon removed, text only) */}
+            <View className="items-center w-full mb-6">
               <Text className="text-[#F8FAFC] text-2xl font-extrabold tracking-[1.5px] text-center">
                 Level<Text className="text-[#38BDF8]">IQ</Text>
               </Text>
@@ -151,37 +126,30 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                 borderColor: 'rgba(56, 189, 248, 0.15)',
                 borderWidth: 1,
                 borderRadius: 20,
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 12 },
-                shadowOpacity: 0.5,
-                shadowRadius: 24,
-                elevation: 10,
               }}
             >
-              
               {/* GOOGLE SIGN IN BUTTON */}
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleGoogleSignIn}
                 disabled={isGoogleLoading || isSubmitting || authLoading}
-                className="bg-[#0F172A] rounded-xl py-3 items-center justify-center border border-sky-400/30"
-                style={{ shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 3 }}
+                className="bg-[#0F172A] rounded-xl py-3 items-center justify-center border border-sky-400/30 mb-3"
               >
                 {isGoogleLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <View className="flex-row items-center justify-center">
                     <SvgXml xml={svgGoogle} width={18} height={18} />
-                    <Text className="text-[#F8FAFC] text-sm font-bold ml-2.5 tracking-[0.2px]">Continue with Google</Text>
+                    <Text className="text-[#F8FAFC] text-sm font-bold ml-2.5">Continue with Google</Text>
                   </View>
                 )}
               </TouchableOpacity>
 
               {/* Divider */}
-              <View className="flex-row items-center my-3.5">
+              <View className="flex-row items-center my-3">
                 <View className="flex-1 h-[1px] bg-slate-400/15" />
                 <Text className="text-slate-500 text-[9px] font-bold tracking-[1.1px] mx-2.5">
-                  {mode === 'signin' ? 'OR SIGN IN WITH EMAIL' : 'OR REGISTER WITH EMAIL'}
+                  {mode === 'signin' ? 'OR EMAIL' : 'OR REGISTER'}
                 </Text>
                 <View className="flex-1 h-[1px] bg-slate-400/15" />
               </View>
@@ -192,42 +160,36 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                   activeOpacity={0.8}
                   onPress={() => { setMode('signin'); setErrorMessage(null); setSuccessMessage(null); }}
                   className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signin' ? 'bg-blue-600' : ''}`}
-                  style={mode === 'signin' ? { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
-                  <Text className={`text-xs tracking-[0.3px] ${mode === 'signin' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Sign In</Text>
+                  <Text className={`text-xs ${mode === 'signin' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Sign In</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => { setMode('signup'); setErrorMessage(null); setSuccessMessage(null); }}
                   className={`flex-1 py-2 rounded-[9px] items-center justify-center ${mode === 'signup' ? 'bg-blue-600' : ''}`}
-                  style={mode === 'signup' ? { backgroundColor: '#2563EB', shadowColor: '#2563EB', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6 } : {}}
                 >
-                  <Text className={`text-xs tracking-[0.3px] ${mode === 'signup' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Create Account</Text>
+                  <Text className={`text-xs ${mode === 'signup' ? 'text-white font-bold' : 'text-slate-400 font-semibold'}`}>Create Account</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Error Alert */}
               {errorMessage && (
                 <View className="bg-red-500/15 border border-red-500/35 p-[9px] rounded-[10px] mb-3">
-                  <Text className="text-red-400 text-xs text-center font-medium leading-4">{errorMessage}</Text>
+                  <Text className="text-red-400 text-xs text-center font-medium">{errorMessage}</Text>
                 </View>
               )}
 
-              {/* Success Alert */}
               {successMessage && (
                 <View className="bg-green-500/15 border border-green-500/35 p-[9px] rounded-[10px] mb-3">
-                  <Text className="text-green-400 text-xs text-center font-medium leading-4">{successMessage}</Text>
+                  <Text className="text-green-400 text-xs text-center font-medium">{successMessage}</Text>
                 </View>
               )}
 
-              {/* Name Field (Sign Up only) */}
               {mode === 'signup' && (
                 <View className="w-full mb-[11px]">
                   <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">FULL NAME</Text>
                   <TextInput
-                    className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
-                    style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
+                    className="w-full bg-[#0b1326] border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                     placeholder="Enter your full name"
                     placeholderTextColor="#475569"
                     value={name}
@@ -238,12 +200,10 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                 </View>
               )}
 
-              {/* Email Field */}
               <View className="w-full mb-[11px]">
                 <Text className="text-slate-400 text-[10px] font-bold tracking-[1px] mb-[5px]">EMAIL ADDRESS</Text>
                 <TextInput
-                  className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
-                  style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
+                  className="w-full bg-[#0b1326] border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                   placeholder="your.email@example.com"
                   placeholderTextColor="#475569"
                   value={email}
@@ -254,17 +214,15 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                 />
               </View>
 
-              {/* Password Field */}
-              <View className="w-full mb-[11px]">
+              <View className="w-full mb-[15px]">
                 <View className="flex-row justify-between items-center mb-[5px]">
                   <Text className="text-slate-400 text-[10px] font-bold tracking-[1px]">PASSWORD</Text>
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                     <Text className="text-[#38BDF8] text-[11px] font-semibold">{showPassword ? 'Hide' : 'Show'}</Text>
                   </TouchableOpacity>
                 </View>
                 <TextInput
-                  className="w-full bg-[#0b1326]/95 border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
-                  style={{ backgroundColor: '#0b1326', color: '#F8FAFC', paddingHorizontal: 13, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(148, 163, 184, 0.15)' }}
+                  className="w-full bg-[#0b1326] border border-slate-400/15 rounded-xl px-[13px] py-2.5 text-slate-50 text-[13px]"
                   placeholder="••••••••••••"
                   placeholderTextColor="#475569"
                   value={password}
@@ -274,37 +232,32 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                 />
               </View>
 
-              {/* Primary Action Button */}
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={handleSubmit}
                 disabled={isSubmitting || authLoading || isGoogleLoading}
-                className={`bg-blue-600 rounded-xl py-3 items-center justify-center mt-1 ${(isSubmitting || authLoading) ? 'opacity-65' : ''}`}
-                style={{
-                  backgroundColor: '#2563EB',
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#38BDF8',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 10,
-                  elevation: 4,
-                  opacity: (isSubmitting || authLoading) ? 0.65 : 1,
-                }}
+                className={`bg-blue-600 rounded-xl py-3 items-center justify-center mb-3 ${(isSubmitting || authLoading) ? 'opacity-65' : ''}`}
               >
                 {isSubmitting || authLoading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-white text-[13px] font-bold tracking-[0.4px]">
-                    {mode === 'signin' ? 'Sign In to LevelIQ' : 'Create Account'}
+                  <Text className="text-white text-[13px] font-bold">
+                    {mode === 'signin' ? 'Sign In' : 'Create Account'}
                   </Text>
                 )}
               </TouchableOpacity>
 
-              {/* Footer Toggle Link */}
-              <View className="flex-row items-center justify-center mt-4">
+              {/* CONTINUE AS GUEST BUTTON */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={continueAsGuest}
+                className="bg-transparent border border-slate-600/40 rounded-xl py-2.5 items-center justify-center mb-3"
+              >
+                <Text className="text-slate-300 text-xs font-semibold">Continue as Guest</Text>
+              </TouchableOpacity>
+
+              {/* Footer Toggle */}
+              <View className="flex-row items-center justify-center mt-1">
                 <Text className="text-slate-400 text-xs">
                   {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
                 </Text>
@@ -314,7 +267,6 @@ export default function AuthScreen({ initialMode = 'signin' }: AuthScreenProps =
                     setErrorMessage(null);
                     setSuccessMessage(null);
                   }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
                   <Text className="text-[#38BDF8] text-xs font-bold">
                     {mode === 'signin' ? 'Create one' : 'Sign in'}
