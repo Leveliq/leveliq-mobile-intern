@@ -124,7 +124,7 @@ export default function InvestIQChat({
               </View>
               <View>
                 <Text className="text-slate-50 text-base font-extrabold tracking-wide">
-                  Groww <Text className="text-[#38BDF8]">ai</Text>
+                  InvestIQ <Text className="text-[#38BDF8]">Chat</Text>
                 </Text>
                 <View className="flex-row items-center mt-0.5">
                   <View className="w-2 h-2 rounded-full bg-emerald-400 mr-1.5" />

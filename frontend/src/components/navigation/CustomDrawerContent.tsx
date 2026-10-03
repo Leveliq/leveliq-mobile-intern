@@ -1,6 +1,6 @@
 // src/components/navigation/CustomDrawerContent.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   LayoutDashboard,
@@ -8,9 +8,6 @@ import {
   CreditCard,
   Upload,
   LogOut,
-  ChevronDown,
-  Plus,
-  MessageSquare,
   Newspaper,
   GraduationCap,
   Calculator,
@@ -18,7 +15,6 @@ import {
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { loadSessions } from '../chat/chatApi';
 
 const NAVIGATION_MENU = [
   { label: 'Dashboard', icon: LayoutDashboard, route: 'index' },
@@ -39,26 +35,12 @@ interface CustomDrawerContentProps {
   onOpenChat: (sessionId?: string) => void;
 }
 
-export default function CustomDrawerContent({ drawerProps, onOpenChat }: CustomDrawerContentProps) {
-  const { user, signOut, isGuest } = useAuth();
+export default function CustomDrawerContent({ drawerProps }: CustomDrawerContentProps) {
+  const { signOut, isGuest } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(2);
-
   const activeRoute = drawerProps.state?.routes?.[drawerProps.state.index]?.name;
-
-  useEffect(() => {
-    if (user && !isGuest) {
-      setLoadingHistory(true);
-      loadSessions(user.id).then((data) => {
-        setSessions(data);
-        setLoadingHistory(false);
-      });
-    }
-  }, [user, isGuest]);
 
   const handleNavigate = (route: string) => {
     drawerProps.navigation?.closeDrawer?.();
@@ -67,11 +49,6 @@ export default function CustomDrawerContent({ drawerProps, onOpenChat }: CustomD
     } else {
       router.push(`/(app)/${route}` as any);
     }
-  };
-
-  const handleChatAction = (sessionId?: string) => {
-    drawerProps.navigation?.closeDrawer?.();
-    setTimeout(() => onOpenChat(sessionId), 220);
   };
 
   return (
@@ -127,58 +104,6 @@ export default function CustomDrawerContent({ drawerProps, onOpenChat }: CustomD
             </TouchableOpacity>
           );
         })}
-
-        {!isGuest && (
-          <>
-            <View className="h-[1px] bg-slate-800/60 my-4 mx-6" />
-            <Text className="text-slate-500 text-[10px] font-bold tracking-widest px-6 mb-2">INVESTIQ CHAT</Text>
-            <View className="mx-3">
-              <TouchableOpacity 
-                activeOpacity={0.7} 
-                onPress={() => handleChatAction()} 
-                className="flex-row items-center px-4 py-3 rounded-xl mb-1 bg-sky-400/5 border border-sky-400/10"
-              >
-                <Plus size={18} color="#38BDF8" />
-                <Text className="ml-3 text-[13px] font-bold text-sky-400 tracking-wide">New Chat</Text>
-              </TouchableOpacity>
-
-              <View className="flex-row items-center justify-between px-4 mt-2 mb-1">
-                <Text className="text-slate-400 text-[11px] font-medium tracking-wide">Recent Chats</Text>
-              </View>
-
-              {loadingHistory ? (
-                <ActivityIndicator size="small" color="#38BDF8" style={{ marginTop: 10 }} />
-              ) : (
-                <>
-                  {sessions.slice(0, visibleCount).map((session) => (
-                    <TouchableOpacity 
-                      key={session.session_id} 
-                      activeOpacity={0.7} 
-                      onPress={() => handleChatAction(session.session_id)} 
-                      className="flex-row items-center px-4 py-3 rounded-xl"
-                    >
-                      <MessageSquare size={15} color="#94A3B8" />
-                      <Text className="ml-3 text-[13px] text-slate-300 flex-1 font-medium" numberOfLines={1}>
-                        {session.first_message}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-
-                  {sessions.length > visibleCount && (
-                    <TouchableOpacity 
-                      activeOpacity={0.7} 
-                      onPress={() => setVisibleCount((prev) => prev + 5)} 
-                      className="flex-row items-center px-4 py-2 rounded-xl mt-1"
-                    >
-                      <ChevronDown size={14} color="#94A3B8" />
-                      <Text className="ml-3 text-[12px] text-slate-400 font-medium">Show more</Text>
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
-            </View>
-          </>
-        )}
       </ScrollView>
 
       {/* Clean Bottom Footer with Only Sign Out Button */}

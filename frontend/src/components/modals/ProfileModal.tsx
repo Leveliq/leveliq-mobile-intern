@@ -1,6 +1,6 @@
 // src/components/modals/ProfileModal.tsx
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, Image, TouchableOpacity, Modal, Pressable, Alert } from 'react-native';
 import { LayoutDashboard, LogOut } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +17,24 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const displayName = userName || 'Investor';
   const avatarUrl = user?.user_metadata?.avatar_url;
   const initial = displayName.charAt(0).toUpperCase();
+
+  const handleSignOutPress = () => {
+    Alert.alert(
+      isGuest ? 'Exit Guest Mode' : 'Sign Out',
+      isGuest ? 'Are you sure you want to exit guest mode?' : 'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isGuest ? 'Exit' : 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            onClose();
+            await signOut();
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
@@ -50,10 +68,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
 
           <TouchableOpacity 
             activeOpacity={0.7}
-            onPress={async () => {
-              onClose();
-              await signOut();
-            }}
+            onPress={handleSignOutPress}
             className="flex-row items-center px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 mt-1"
           >
             <LogOut size={16} color="#F87171" />

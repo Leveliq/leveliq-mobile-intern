@@ -26,8 +26,6 @@ function AuthGuard() {
     if (!hasAccess && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (hasAccess && inAuthGroup) {
-      router.replace('/(app)/analyze'); // Redirects straight to analyze page on sign in/up/guest
-    } else if (hasAccess && !inAppGroup && !inAuthGroup) {
       router.replace('/(app)/analyze');
     }
   }, [user, loading, isGuest, segments]);

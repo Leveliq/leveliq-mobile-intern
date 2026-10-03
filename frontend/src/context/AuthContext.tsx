@@ -213,10 +213,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     setIsGuest(false);
-    if (!session) return;
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Sign out failed:', error.message);
-  }, [session]);
+  }, []);
 
   const userName = isGuest
     ? 'Guest'

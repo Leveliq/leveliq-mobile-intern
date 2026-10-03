@@ -21,13 +21,24 @@
     "plugins": [
       "expo-router",
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#050816",
+          "image": "./assets/images/Logo.png",
+          "imageWidth": 76,
+          "resizeMode": "contain"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true,
             "useLegacyPackaging": true,
-            "reactNativeArchitectures": ["arm64-v8a"]
+            "reactNativeArchitectures": [
+              "arm64-v8a"
+            ]
           }
         }
       ]

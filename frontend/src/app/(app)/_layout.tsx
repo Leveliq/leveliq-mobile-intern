@@ -7,14 +7,16 @@ import { Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import InvestIQChat from '../../components/chat/InvestIQChat';
 import CustomDrawerContent from '../../components/navigation/CustomDrawerContent';
+import ProfileModal from '../../components/modals/ProfileModal';
 import GuestPromptModal from '../../components/modals/GuestPromptModal';
 
 export default function AppLayout() {
   const [chatOpen, setChatOpen] = useState(false);
   const [targetSessionId, setTargetSessionId] = useState<string | undefined>();
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [guestModalVisible, setGuestModalVisible] = useState(false);
 
-  const { user, userName, signOut, isGuest } = useAuth();
+  const { user, userName, isGuest } = useAuth();
   const router = useRouter();
 
   const displayName = userName || 'Investor';
@@ -57,7 +59,7 @@ export default function AppLayout() {
           ),
           headerRight: () => (
             <View className="flex-row items-center gap-3" style={{ marginRight: 16 }}>
-              {/* Chatbot Icon Trigger Button next to Profile Photo */}
+              {/* Chatbot Icon */}
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => handleOpenChat()}
@@ -66,10 +68,10 @@ export default function AppLayout() {
                 <Sparkles size={16} color="#38BDF8" />
               </TouchableOpacity>
 
-              {/* Profile Avatar / Placeholder */}
+              {/* Profile Avatar Trigger */}
               <TouchableOpacity 
                 activeOpacity={0.8} 
-                onPress={async () => { await signOut(); }}
+                onPress={() => setProfileModalVisible(true)}
               >
                 {avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} className="w-8 h-8 rounded-full bg-slate-800" />
@@ -99,12 +101,16 @@ export default function AppLayout() {
         <Drawer.Screen name="report/[token]" options={{ drawerItemStyle: { display: 'none' }, headerShown: false }} />
       </Drawer>
 
+      <ProfileModal 
+        visible={profileModalVisible} 
+        onClose={() => setProfileModalVisible(false)} 
+      />
+
       <GuestPromptModal
         visible={guestModalVisible}
         onClose={() => setGuestModalVisible(false)}
         onSignOut={async () => {
           setGuestModalVisible(false);
-          await signOut();
         }}
       />
 
